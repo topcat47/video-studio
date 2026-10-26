@@ -1,0 +1,72 @@
+# Git tracks the studio's code: rules, skills, agents, scripts and the app. Your own library, characters,
+# settings and media stay on disk, never in git (remove a line here if you want to version that part).
+
+# Your settings (setup.sh writes them from the *.example.json files)
+/studio.config.json
+/.mcp.json
+/video-library/settings.json
+
+# Your library: cards, finds lists, spend ledger, characters
+/video-library/labels.json
+/video-library/*-finds.json
+/video-library/*-finds-removed.json
+/video-library/*-finds/
+/spend.csv
+/characters/*/
+/songs/
+/projects/
+
+# Finished videos, sources and pictures (every subject folder: Other/ and each character's)
+/Other/
+/originals/
+
+# App caches (rebuilt by the server)
+/video-library/.thumbs/
+/video-library/.transcripts/
+
+/assets/
+
+# Media anywhere else
+*.mp4
+*.mov
+*.m4v
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.JPG
+*.webp
+*.heic
+*.m4a
+*.mp3
+*.wav
+*.blend
+*.blend1
+
+# Clutter (git history replaces manual .bak copies)
+*.bak*
+.DS_Store
+__pycache__/
+*.pyc
+
+# Studio runtime state (token is a secret)
+/video-library/.studio-token
+/video-library/.buffer-key
+/video-library/.buffer-cache.json
+/video-library/buffer-comments.json
+/video-library/.buffer-job-settings.json
+/video-library/studio-gates.json
+/video-library/studio-sessions.json
+
+# Studio background runs (logs, work files) and generated run settings
+/runs/
+/video-library/studio-run-settings.json
+
+# Test build of the Mac app (scripts/build-studio-app.sh --test)
+/video-library/test/.build/
+/video-library/studio-steps.json
+/.removed-skills/
+/.skill-history/
+/video-library/buffer-schedule.json
+/video-library/studio-takes.json
+/video-library/studio-video-stages.json

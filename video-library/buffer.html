@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buffer · Video Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cdefs%3E%3CclipPath id=%22t%22%3E%3Crect x=%224%22 y=%224%22 width=%2256%22 height=%2256%22 rx=%2215%22/%3E%3C/clipPath%3E%3CclipPath id=%22o%22%3E%3Cpolygon points=%220,0 64,0 0,64%22/%3E%3C/clipPath%3E%3CclipPath id=%22c%22%3E%3Cpolygon points=%2264,0 64,64 0,64%22/%3E%3C/clipPath%3E%3C/defs%3E%3Cpolygon points=%2264,0 64,64 0,64%22 fill=%22%23C6F432%22 clip-path=%22url(%23t)%22/%3E%3Crect x=%225.75%22 y=%225.75%22 width=%2252.5%22 height=%2252.5%22 rx=%2213.25%22 fill=%22none%22 stroke=%22%23C6F432%22 stroke-width=%223.5%22/%3E%3Cpolygon points=%2223.5,18.5 23.5,45.5 46.5,32%22 fill=%22%23C6F432%22 clip-path=%22url(%23o)%22/%3E%3Cpolygon points=%2223.5,18.5 23.5,45.5 46.5,32%22 fill=%22%230E0F11%22 clip-path=%22url(%23c)%22/%3E%3C/svg%3E">
+<style>
+  /* The same always-dark system as the Studio and the library: near-black surfaces, one electric-lime accent. */
+  :root {
+    --bg: #0E0F11; --side: #111215; --panel: #17181C; --panel2: #1E2025; --ink: #F2F3F5; --ink2: #C7CAD1; --muted: #9A9DA6; --line: #25272D; --line2: #353840;
+    --accent: #C6F432; --accent-ink: #0E0F11; --accent-soft: #1C2210; --danger: #FF6B6B; --ok-ink: #7EE0A1;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  h1:focus { outline: none; }
+  .shell { display: flex; flex-wrap: wrap; align-content: flex-start; min-height: 100vh; }
+  nav.side { flex: 1 1 220px; max-width: 240px; background: var(--side); border-right: 1px solid var(--line); padding: 20px 12px; display: flex; flex-direction: column; gap: 20px; }
+  @media (min-width: 781px) { nav.side { position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; } }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .brand .logo { width: 30px; height: 30px; display: block; flex: none; }
+  .brand small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .navlbl { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 0 10px 6px; }
+  .navlist { display: flex; flex-direction: column; gap: 2px; }
+  .navlist a, .navlist button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border-radius: 8px; color: var(--ink2); text-decoration: none; font: inherit; font-size: 14px; background: none; border: 0; cursor: pointer; text-align: left; }
+  .navlist a:hover, .navlist button:hover { background: var(--panel); color: var(--ink); }
+  .navlist .on { background: var(--panel2); color: var(--ink); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+  .navlist .n { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .navlist img, .av { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex: none; background: var(--line2); }
+  /* A channel's avatar with its network's badge (TikTok / X / Instagram) in the corner. */
+  .avw { position: relative; width: 22px; height: 22px; flex: none; display: inline-block; }
+  .avw img, .avw .av0 { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; display: block; background: var(--line2); }
+  .net { position: absolute; right: -5px; bottom: -4px; width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--side); }
+  .post .net, .cmt .net { box-shadow: 0 0 0 2px var(--panel); }
+  .net svg { width: 8px; height: 8px; display: block; }
+  .net.tiktok { background: #000; color: #fff; outline: 1px solid #3A3D45; }
+  .net.x { background: #fff; color: #000; }
+  .net.instagram { background: linear-gradient(45deg, #F58529, #DD2A7B 55%, #8134AF); color: #fff; }
+  .net.other { background: var(--line2); color: var(--ink); }
+  /* Channel switcher: one button for the current channel, a menu of every channel grouped by network. */
+  .chanpick { position: relative; }
+  #chanBtn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
+  #chanBtn:hover, #chanBtn[aria-expanded="true"] { border-color: var(--muted); }
+  #chanBtn .lbl { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+  #chanBtn .lbl b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #chanBtn .lbl small { color: var(--muted); font-size: 12px; }
+  #chanBtn .chev { margin-left: auto; color: var(--muted); flex: none; }
+  .allic { width: 22px; height: 22px; border-radius: 50%; background: var(--line2); display: grid; place-items: center; flex: none; color: var(--ink); font-size: 11px; font-weight: 700; }
+  #chanMenu { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; padding: 6px; box-shadow: 0 18px 40px rgba(0,0,0,.55); display: flex; flex-direction: column; gap: 1px; max-height: 70vh; overflow-y: auto; }
+  #chanMenu [role=option] { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border-radius: 8px; border: 0; background: none; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+  #chanMenu [role=option]:hover, #chanMenu [role=option]:focus-visible { background: var(--panel2); color: var(--ink); outline: none; }
+  #chanMenu [aria-selected=true] { color: var(--ink); font-weight: 600; }
+  #chanMenu [aria-selected=true]::after { content: "✓"; margin-left: auto; color: var(--accent); }
+  #chanMenu .n { margin-left: auto; color: var(--muted); font-size: 12px; }
+  #chanMenu [aria-selected=true] .n { display: none; }
+  @media (max-width: 780px) { .chanpick { flex-basis: 100%; } }
+  .netlbl { display: flex; align-items: center; gap: 7px; padding: 10px 10px 3px; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .netlbl .net { position: static; box-shadow: none; outline: none; width: 16px; height: 16px; }
+  .netlbl .net svg { width: 9px; height: 9px; }
+  .sidefoot { margin-top: auto; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+  main { flex: 999 1 560px; min-width: 0; max-width: 1100px; padding: 30px 40px 56px; display: flex; flex-direction: column; gap: 22px; }
+  .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 9px 16px; min-height: 40px; cursor: pointer; border: 1px solid var(--line2); background: var(--panel2); color: var(--ink); }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.sm { padding: 5px 12px; min-height: 32px; font-size: 13px; }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .readonly .btn[data-act], .readonly .btn[data-cact] { opacity: .45; pointer-events: none; }
+  .notice { border: 1px solid var(--line2); border-radius: 12px; padding: 14px 16px; background: var(--panel); font-size: 14px; color: var(--ink2); }
+  .notice.err { border-color: #6B2A38; background: #2A1418; color: #FFB3BD; }
+  .day { display: flex; flex-direction: column; gap: 8px; }
+  .day h2 { margin: 6px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .posts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .post { display: grid; grid-template-columns: 64px 54px minmax(0, 1fr); gap: 14px; align-items: start; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .post .when { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; padding-top: 2px; }
+  .post .when small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .post .thumb { width: 54px; height: 72px; border-radius: 8px; background: var(--bg) center/cover no-repeat; border: 1px solid var(--line2); display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+  .post .body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .post .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .post .text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .chan { display: inline-flex; align-items: center; gap: 6px; color: var(--ink2); font-weight: 600; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 600; border: 1px solid var(--line2); color: var(--ink2); white-space: nowrap; }
+  .pill.lib { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .pill.warn { border-color: #6B5420; color: #F2C46B; }
+  .metrics { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink2); }
+  .metrics b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  a.ext { color: var(--accent); text-decoration: none; }
+  a.ext:hover { text-decoration: underline; }
+  .empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--line2); border-radius: 12px; padding: 18px; }
+  .gap { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 14px; align-items: start; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .gap .info { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+  .gap b { overflow-wrap: anywhere; }
+  .gap .info .sub { flex-basis: 100%; }
+  /* A video's first frame; clicking plays it large. */
+  .vprev { position: relative; width: 108px; aspect-ratio: 9 / 16; padding: 0; border: 1px solid var(--line2); border-radius: 10px; overflow: hidden; background: var(--bg) center/cover no-repeat; cursor: pointer; }
+  .vprev .play { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 15px; padding-left: 3px; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+  @media (prefers-reduced-motion: no-preference) { .vprev .play { transition: transform .15s; } }
+  .vprev:hover .play, .vprev:focus-visible .play { transform: scale(1.1); }
+  dialog.player { border: 1px solid var(--line2); padding: 0; background: #000; border-radius: 14px; max-width: min(96vw, 1200px); }
+  dialog.player::backdrop { background: rgba(5,6,8,.82); }
+  dialog.player video { display: block; max-width: min(96vw, 1200px); max-height: 86vh; }
+  dialog.player .close { position: absolute; top: 8px; right: 8px; z-index: 1; }
+  dialog.player .cap { position: absolute; left: 12px; top: 12px; z-index: 1; max-width: calc(100% - 110px); font-size: 13px; color: #fff; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 640px) { .gap { grid-template-columns: 80px minmax(0, 1fr); } .vprev { width: 80px; } }
+  .gap .acts { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; align-items: center; }
+  /* Schedule on Buffer */
+  dialog.sched { border: 1px solid var(--line2); border-radius: 16px; background: var(--panel); color: var(--ink); padding: 0; width: min(94vw, 620px); max-height: 92vh; }
+  dialog.sched::backdrop { background: rgba(5,6,8,.75); }
+  .sched .in { padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .sched h2 { margin: 0; font-size: 19px; }
+  .sched .vid { display: flex; gap: 12px; align-items: center; }
+  .sched .vid .t { width: 46px; aspect-ratio: 9/16; border-radius: 6px; background: var(--bg) center/cover no-repeat; border: 1px solid var(--line2); flex: none; }
+  .sched .vid b { overflow-wrap: anywhere; font-size: 14px; }
+  .sched .lbl2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .seg button { font: inherit; text-align: left; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel2); color: var(--ink2); cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+  .seg button b { font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 7px; }
+  .seg button small { font-size: 12px; color: var(--muted); }
+  .seg button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .seg button .net { position: static; box-shadow: none; }
+  .capbox { display: flex; flex-direction: column; gap: 6px; }
+  .capbox .hd { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .capbox .hd .cnt { margin-left: auto; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .capbox .hd .cnt.over { color: var(--danger); }
+  .sched textarea, .sched input[type=text] { font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--line2); border-radius: 10px; background: var(--bg); color: var(--ink); width: 100%; }
+  .sched textarea { resize: vertical; min-height: 60px; }
+  .sched textarea:focus, .sched input[type=text]:focus { outline: none; border-color: var(--accent); }
+  .how { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+  .how label { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); font-weight: 500; }
+  .how label small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .how input { accent-color: var(--accent); margin-top: 3px; }
+  .sched .foot { display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding: 14px 22px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .sched .foot .msg { margin-right: auto; }
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .steps li { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .steps .who { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+  .steps .who .net { position: static; box-shadow: none; }
+  .steps .who .res { margin-left: auto; font-weight: 500; font-size: 13px; }
+  .steps .chain { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+  .steps .chain span.ok { color: var(--ok-ink); }
+  .steps .chain span.now { color: var(--ink); font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+  .pill.sched-busy { border-color: var(--accent); color: var(--accent); }
+  .pill.sched-ok { border-color: #2B5A3C; color: var(--ok-ink); }
+  .btn.danger { color: var(--danger); border-color: #6B2A38; background: var(--panel2); }
+  .btn.danger:hover { border-color: var(--danger); }
+  .btn.danger.solid { background: var(--danger); color: #1A0A0E; border-color: var(--danger); }
+  dialog.confirm { border: 1px solid var(--line2); border-radius: 16px; background: var(--panel); color: var(--ink); padding: 22px 24px; width: min(92vw, 460px); }
+  dialog.confirm::backdrop { background: rgba(5,6,8,.75); }
+  dialog.confirm h2 { margin: 0 0 8px; font-size: 18px; }
+  dialog.confirm p { margin: 0 0 6px; font-size: 14px; color: var(--ink2); overflow-wrap: anywhere; }
+  dialog.confirm .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  dialog.confirm .msg { margin-top: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+  .card ol { margin: 0; padding-left: 20px; color: var(--ink2); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+  .card input { font: inherit; padding: 11px 14px; border: 1px solid var(--line2); border-radius: 10px; background: var(--bg); color: var(--ink); min-height: 44px; width: 100%; }
+  .card input:focus { outline: none; border-color: var(--accent); }
+  .msg { font-size: 14px; min-height: 20px; }
+  .msg.err { color: var(--danger); }
+  .msg.ok { color: var(--ok-ink); }
+  /* Missing: one chip per network of the brand */
+  .msbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .msbar .notice { margin: 0; }
+  .where { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .wh { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; padding: 4px 11px 4px 6px; border-radius: 999px; border: 1px solid var(--line2); color: var(--ink2); white-space: nowrap; }
+  .wh .net { position: static; box-shadow: none; width: 18px; height: 18px; }
+  .wh .net svg { width: 10px; height: 10px; }
+  .wh b { font-weight: 600; color: var(--ink); }
+  .wh.posted { border-color: #2B5A3C; } .wh.posted .st { color: var(--ok-ink); }
+  .wh.queued .st { color: var(--accent); }
+  .wh.missing, .wh.draft { border-color: #6B2B2B; background: #241414; } .wh.missing .st, .wh.draft .st { color: var(--danger); font-weight: 600; }
+  .wh.none { border-style: dashed; color: var(--muted); } .wh.none b { color: var(--muted); }
+  .wh a { color: var(--accent); text-decoration: none; }
+  /* Comments */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .chips { display: flex; gap: 6px; }
+  .chip { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line2); background: var(--panel); color: var(--ink2); cursor: pointer; }
+  .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line2); border-top-color: var(--accent); flex: none; display: inline-block; vertical-align: -2px; }
+  @media (prefers-reduced-motion: no-preference) { .spin { animation: spin .8s linear infinite; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .cmts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .cmt { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .cmt.busy { border-color: var(--accent); }
+  .cmt.done { opacity: .8; }
+  .cmt .who { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .cmt .who b { color: var(--ink); font-size: 14px; }
+  .cmt .said { font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cmt .photo { width: 96px; height: 96px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line2); }
+  .ctx { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .ctx .thumb { width: 30px; height: 40px; border-radius: 5px; background: var(--panel2) center/cover no-repeat; flex: none; }
+  .ctx span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .yours { font-size: 13px; color: var(--ink2); border-left: 2px solid var(--line2); padding-left: 10px; }
+  .yours b { color: var(--muted); font-weight: 600; }
+  .replybox { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .replybox textarea, .replybox input[type=text] { font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--line2); border-radius: 10px; background: var(--bg); color: var(--ink); width: 100%; }
+  .replybox textarea { resize: vertical; min-height: 64px; }
+  .replybox textarea:focus, .replybox input[type=text]:focus { outline: none; border-color: var(--accent); }
+  .replybox .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .state { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .state.ok { color: var(--ok-ink); }
+  .state.bad { color: var(--danger); font-weight: 500; }
+  .state.warn { color: #F2C46B; font-weight: 500; }
+  .sent-text { font-size: 14px; color: var(--ink2); white-space: pre-wrap; }
+  @media (max-width: 640px) { main { padding: 22px 16px 48px; } .post { grid-template-columns: 54px minmax(0, 1fr); } .post .when { grid-column: 1 / -1; } }
+  @media (max-width: 780px) { nav.side { max-width: none; flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; } .navlist { flex-direction: row; flex-wrap: wrap; } .navlist a, .navlist button { width: auto; } .sidefoot { display: none; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side" aria-label="Buffer">
+    <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="logo" aria-hidden="true" focusable="false"><defs><clipPath id="vs-tile"><rect x="4" y="4" width="56" height="56" rx="15"/></clipPath><clipPath id="vs-orig"><polygon points="0,0 64,0 0,64"/></clipPath><clipPath id="vs-conv"><polygon points="64,0 64,64 0,64"/></clipPath></defs><polygon points="64,0 64,64 0,64" fill="#C6F432" clip-path="url(#vs-tile)"/><rect x="5.75" y="5.75" width="52.5" height="52.5" rx="13.25" fill="none" stroke="#C6F432" stroke-width="3.5"/><g stroke-linejoin="round" stroke-width="3"><polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#C6F432" stroke="#C6F432" clip-path="url(#vs-orig)"/><polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#0E0F11" stroke="#0E0F11" clip-path="url(#vs-conv)"/></g></svg><div>Video Studio<small>Buffer</small></div></div>
+    <div class="chanpick" id="chanPick" hidden>
+      <button type="button" id="chanBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="chanMenu"></button>
+      <div id="chanMenu" role="listbox" aria-label="Channel" hidden></div>
+    </div>
+    <div><div class="navlbl">Posts</div>
+      <div class="navlist" id="views">
+        <a href="#queue" data-view="queue">Queue <span class="n" id="n-queue"></span></a>
+        <a href="#sent" data-view="sent">Sent <span class="n" id="n-sent"></span></a>
+        <a href="#drafts" data-view="drafts">Drafts <span class="n" id="n-drafts"></span></a>
+        <a href="#unscheduled" data-view="unscheduled">Not scheduled <span class="n" id="n-unscheduled"></span></a>
+        <a href="#missing" data-view="missing">Missing <span class="n" id="n-missing"></span></a>
+        <a href="#comments" data-view="comments">Comments <span class="n" id="n-comments"></span></a>
+      </div>
+    </div>
+    <div><div class="navlist"><a href="#settings" data-view="settings">Buffer API key</a></div></div>
+    <div class="sidefoot">
+      <div id="fetched">Not connected</div>
+      <div id="rate"></div>
+      <button class="btn sm" type="button" id="refresh" data-act="refresh">Refresh from Buffer</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="head">
+      <div><h1 id="title" tabindex="-1">Queue</h1><div class="sub" id="summary"></div></div>
+    </div>
+    <div class="notice err" id="err" role="alert" hidden></div>
+    <div class="notice" id="readonly" hidden>Read-only in a browser tab: open the Video Studio app to connect Buffer or refresh.</div>
+    <section id="list" aria-live="polite"></section>
+    <section id="settings" hidden>
+      <div class="card">
+        <strong id="keyState">Connect Buffer</strong>
+        <ol>
+          <li>Open <a class="ext" href="https://publish.buffer.com/settings/api" target="_blank" rel="noopener">publish.buffer.com/settings/api</a> and create an API key (the longest expiry is easiest; a new key replaces the old one).</li>
+          <li>Copy it, paste it below and press Connect. It is checked with Buffer, then kept only on this Mac (never shown again).</li>
+        </ol>
+        <form id="keyForm" style="display:flex;flex-direction:column;gap:10px">
+          <label for="key" class="sub">Buffer API key</label>
+          <input type="password" id="key" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit" data-act="key">Connect</button><button class="btn" type="button" id="disconnect" data-act="disconnect" hidden>Disconnect</button></div>
+          <div class="msg" id="keyMsg" aria-live="polite"></div>
+        </form>
+        <div class="sub">Buffer allows about 250 requests a day, so this page refreshes from Buffer on its own at most every 30 minutes; Refresh does it now. It only reads: nothing here creates, changes or deletes a post.</div>
+      </div>
+    </section>
+  </main>
+  <dialog id="schedDlg" class="sched" aria-labelledby="schedTitle"><div id="schedBody"></div></dialog>
+  <dialog id="unDlg" class="confirm" aria-labelledby="unTitle">
+    <h2 id="unTitle">Are you sure you want to unapprove?</h2>
+    <p><b id="unName"></b></p>
+    <p>It leaves the Library's ✅ Approved tab and this list. The video and its card stay, and you can approve it again in the Library.</p>
+    <div class="msg err" id="unMsg" role="alert"></div>
+    <div class="row"><button type="button" class="btn sm" id="unCancel">Cancel</button><button type="button" class="btn sm primary" id="unGo">Unapprove</button></div>
+  </dialog>
+  <dialog id="delDlg" class="confirm" aria-labelledby="delTitle">
+    <h2 id="delTitle">Delete this video?</h2>
+    <p><b id="delName"></b></p>
+    <p>It goes to the Mac's Trash and leaves the Library and this list. You can restore it from the Trash with Put Back; its description and links come back with it. The original source clip is not touched.</p>
+    <div class="msg err" id="delMsg" role="alert"></div>
+    <div class="row"><button type="button" class="btn sm" id="delCancel">Cancel</button><button type="button" class="btn sm danger solid" id="delGo">Move to Trash</button></div>
+  </dialog>
+  <dialog id="player" class="player" aria-label="Video"><span class="cap" id="playerCap"></span><button type="button" class="btn sm close" id="playerClose">Close</button><video controls playsinline></video></dialog>
+</div>
+
+<script>
+(function () {
+  var TOKEN = window.__studioToken || '';
+  var VIEWS = { queue: 'Queue', sent: 'Sent', drafts: 'Drafts', unscheduled: 'Not scheduled', missing: 'Missing', comments: 'Comments', settings: 'Buffer API key' };
+  var state = null, chan = '';   // chan: '' = all channels
+  var brand = '', msFilter = 'missing';   // the Missing view: which brand, and only the gaps or every video
+  try { chan = localStorage.getItem('buffer.channel') || ''; brand = localStorage.getItem('buffer.brand') || ''; } catch (e) {}
+  var cm = null, cmFilter = 'open', edits = {}, notes = {}, pending = {}, unclearOk = {};   // the Comments view
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // Only http(s) links from Buffer become links or images.
+  function safeUrl(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
+  function view() { var h = location.hash.slice(1); return VIEWS[h] ? h : 'queue'; }
+  function ago(iso) { var m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
+  function dayLabel(d) {
+    var t = new Date(); t.setHours(0, 0, 0, 0); var x = new Date(d); x.setHours(0, 0, 0, 0);
+    var diff = Math.round((x - t) / 86400000);
+    var name = d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+    return diff === 0 ? 'Today · ' + name : diff === 1 ? 'Tomorrow · ' + name : diff === -1 ? 'Yesterday · ' + name : name;
+  }
+  function time(d) { return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+  function post(path, body) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Token': TOKEN }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Something went wrong'); return j; }); });
+  }
+
+  var SERVICE = { twitter: 'X', x: 'X', tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube', threads: 'Threads', facebook: 'Facebook', linkedin: 'LinkedIn', bluesky: 'Bluesky' };
+  function serviceName(s) { return SERVICE[String(s).toLowerCase()] || String(s); }
+  // Small network marks for the badges (drawn here, no external images).
+  var NET_ICON = {
+    tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 2h-3.4v13.4a3.1 3.1 0 1 1-2.2-3V9a6.6 6.6 0 1 0 5.6 6.5V8.7a8 8 0 0 0 4.4 1.3V6.6a4.4 4.4 0 0 1-4.4-4.6Z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-7.2 8.2L23 22h-6.6l-5.2-6.8L5.3 22H2.2l7.7-8.8L1.6 2h6.8l4.7 6.2L18.9 2Zm-1.2 18h1.8L7.4 3.9H5.5L17.7 20Z"/></svg>',
+    instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="17.6" cy="6.4" r="1.5" fill="currentColor"/></svg>'
+  };
+  var NET_ORDER = ['tiktok', 'x', 'instagram'];
+  function netOf(service) { var k = String(service || '').toLowerCase(); return k === 'twitter' ? 'x' : k; }
+  function netBadge(service) { var k = netOf(service); return '<span class="net ' + (NET_ICON[k] ? k : 'other') + '" title="' + esc(serviceName(service)) + '">' + (NET_ICON[k] || '') + '</span>'; }
+  function avatar(c) {
+    return '<span class="avw">' + (safeUrl(c.avatar) ? '<img alt="" src="' + esc(c.avatar) + '">' : '<span class="av0"></span>') + netBadge(c.service) + '</span>';
+  }
+  function chanOf(id) { return (state.channels || []).filter(function (c) { return c.id === id; })[0]; }
+  function chanHtml(c) {
+    if (!c) return '<span class="chan">Unknown channel</span>';
+    return '<span class="chan">' + avatar(c) + esc(c.displayName) + ' <span class="pill">' + esc(serviceName(c.service)) + '</span></span>';
+  }
+  function metricsHtml(p) {
+    var ms = (p.metrics || []).filter(function (m) { return typeof m.value === 'number'; }).slice(0, 6);
+    if (!ms.length) return '';
+    return '<div class="metrics">' + ms.map(function (m) { return '<span>' + esc(m.name) + ' <b>' + esc(Math.round(m.value * 100) / 100) + esc(m.unit === 'percentage' ? '%' : '') + '</b></span>'; }).join('') + '</div>';
+  }
+  function postHtml(p, when) {
+    var d = when ? new Date(when) : null;
+    var thumb = safeUrl(p.thumb) ? '<div class="thumb" style="background-image:url(&quot;' + esc(encodeURI(p.thumb)) + '&quot;)" role="img" aria-label="' + esc(p.kind || 'media') + '"></div>' : '<div class="thumb" aria-hidden="true">' + esc(p.kind === 'text' ? 'text' : '') + '</div>';
+    var meta = chanHtml(chanOf(p.channelId)) +
+      (p.video ? '<span class="pill lib" title="Matched to this video\'s card in the Library">' + esc(p.video.split('/').slice(1).join('/')) + '</span>' : '') +
+      (p.custom ? '<span class="pill">custom time</span>' : '') + (p.reminder ? '<span class="pill warn">reminder (post by hand)</span>' : '') +
+      (safeUrl(p.link) ? '<a class="ext" href="' + esc(p.link) + '" target="_blank" rel="noopener">Open post ↗</a>' : '');
+    return '<li class="post"><div class="when">' + (d ? esc(time(d)) : '—') + '</div>' + thumb +
+      '<div class="body"><div class="meta">' + meta + '</div><div class="text">' + esc(p.text || '(no caption)') + '</div>' + metricsHtml(p) + '</div></li>';
+  }
+  function byDay(list, field) {
+    var groups = [], cur = null;
+    list.forEach(function (p) {
+      var w = p[field] || p.dueAt || p.createdAt; var key = w ? new Date(w).toDateString() : 'none';
+      if (!cur || cur.key !== key) { cur = { key: key, label: w ? dayLabel(new Date(w)) : 'No date', items: [] }; groups.push(cur); }
+      cur.items.push(postHtml(p, w));
+    });
+    return groups.map(function (g) { return '<div class="day"><h2>' + esc(g.label) + '</h2><ul class="posts">' + g.items.join('') + '</ul></div>'; }).join('');
+  }
+  function filtered(list) { return chan ? list.filter(function (p) { return p.channelId === chan; }) : list; }
+
+  function render() {
+    var v = view();
+    $('title').textContent = VIEWS[v];
+    document.title = VIEWS[v] + ' · Buffer · Video Studio';
+    [].forEach.call(document.querySelectorAll('[data-view]'), function (a) { var on = a.dataset.view === v; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    $('settings').hidden = v !== 'settings'; $('list').hidden = v === 'settings';
+    if (!state) return;
+    var s = state;
+    $('err').hidden = !s.error; $('err').textContent = s.error || '';
+    $('fetched').textContent = !s.connected ? 'Not connected' : s.refreshing ? 'Refreshing from Buffer…' : s.fetchedAt ? 'Updated ' + ago(s.fetchedAt) + (s.organization ? ' · ' + s.organization.name : '') : 'Waiting for the first refresh…';
+    // Buffer names its windows like "100-in-15min", "500-in-1day", "15000-in-30days".
+    var win = function (n) { return /15min/.test(n) ? 'this 15 min' : /1day|24h/.test(n) ? 'today' : /30day/.test(n) ? 'this month' : n; };
+    $('rate').textContent = s.rate && s.rate.length ? 'Buffer requests left: ' + s.rate.map(function (r) { return r.remaining + ' ' + win(r.name); }).join(' · ') : '';
+    $('refresh').hidden = !s.connected; $('disconnect').hidden = !s.connected;
+    $('keyState').textContent = s.connected ? 'Buffer is connected' + (s.organization ? ' (' + s.organization.name + ')' : '') + '. Paste a new key to replace it.' : 'Connect Buffer';
+    $('n-queue').textContent = filtered(s.scheduled).length || ''; $('n-sent').textContent = filtered(s.sent).length || '';
+    $('n-drafts').textContent = filtered(s.drafts).length || ''; $('n-unscheduled').textContent = s.unscheduled.length || '';
+    $('n-missing').textContent = (s.missing || []).reduce(function (n, b) { return n + b.videos.filter(function (x) { return x.missing.length; }).length; }, 0) || '';
+    $('n-comments').textContent = cm ? (cm.comments.filter(function (c) { return (!chan || c.channelId === chan) && needsReply(c); }).length || '') : '';
+    if (chan && !chanOf(chan)) chan = '';   // a channel that is gone from Buffer
+    $('chanPick').hidden = !s.channels.length;
+    var cur = chanOf(chan);
+    var btnHtml = (cur ? avatar(cur) + '<span class="lbl"><b>' + esc(cur.displayName) + (cur.paused || cur.disconnected ? ' ⚠' : '') + '</b><small>' + esc(serviceName(cur.service)) + (cur.disconnected ? ' · disconnected in Buffer' : cur.paused ? ' · queue paused' : '') + '</small></span>'
+      : '<span class="allic" aria-hidden="true">' + s.channels.length + '</span><span class="lbl"><b>All channels</b><small>' + s.channels.length + ' channels</small></span>') +
+      '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>';
+    if ($('chanBtn').__html !== btnHtml) { $('chanBtn').innerHTML = btnHtml; $('chanBtn').__html = btnHtml; }
+    $('chanBtn').setAttribute('aria-label', 'Channel: ' + (cur ? serviceName(cur.service) + ' ' + cur.displayName : 'All channels') + '. Change channel');
+    // Grouped by network (TikTok, X, Instagram, then anything else), each avatar badged with its network.
+    var rank = function (c) { var i = NET_ORDER.indexOf(netOf(c.service)); return i < 0 ? 99 : i; };
+    var sorted = s.channels.slice().sort(function (a, b) { return rank(a) - rank(b) || String(a.displayName).localeCompare(String(b.displayName)); });
+    var lastNet = null;
+    var menuHtml = '<button type="button" role="option" data-chan="" aria-selected="' + !chan + '"><span class="allic" aria-hidden="true">' + s.channels.length + '</span>All channels</button>' + sorted.map(function (c) {
+      var n = s.scheduled.filter(function (p) { return p.channelId === c.id; }).length, net = netOf(c.service);
+      var head = net !== lastNet ? '<div class="netlbl" role="presentation">' + netBadge(c.service) + esc(serviceName(c.service)) + '</div>' : '';
+      lastNet = net;
+      return head + '<button type="button" role="option" data-chan="' + esc(c.id) + '" aria-selected="' + (chan === c.id) + '" title="' + esc(serviceName(c.service) + ' @' + c.name + (c.paused ? ' · queue paused' : '') + (c.disconnected ? ' · disconnected in Buffer' : '')) + '" aria-label="' + esc(serviceName(c.service) + ' ' + c.displayName + (c.disconnected ? ', disconnected' : '')) + '">' +
+        avatar(c) + esc(c.displayName) + (c.paused || c.disconnected ? ' ⚠' : '') + '<span class="n" title="scheduled">' + (n || '') + '</span></button>';
+    }).join('');
+    if ($('chanMenu').__html !== menuHtml) { $('chanMenu').innerHTML = menuHtml; $('chanMenu').__html = menuHtml; }
+    var sum = { queue: s.scheduled, sent: s.sent, drafts: s.drafts }[v];
+    $('summary').textContent = v === 'unscheduled' ? 'Approved videos in the Library with no Buffer post and nothing under "Where it\'s posted".'
+      : v === 'settings' ? '' : sum ? filtered(sum).length + (v === 'queue' ? ' scheduled' : v === 'sent' ? ' recent posts' : ' drafts') + (chan ? ' on ' + (chanOf(chan) || {}).displayName : ' on all channels') : '';
+    if (v === 'settings') return;
+    if (v === 'comments') { renderComments(); return; }
+    if (v === 'missing') { renderMissing(); return; }
+    if (!s.connected) { $('list').innerHTML = '<div class="empty">Buffer isn\'t connected yet. <a class="ext" href="#settings">Add your Buffer API key</a> to see the queue here.</div>'; return; }
+    var html;
+    if (v === 'queue') html = byDay(filtered(s.scheduled), 'dueAt') || '<div class="empty">Nothing scheduled' + (chan ? ' on this channel' : '') + '.</div>';
+    else if (v === 'sent') html = byDay(filtered(s.sent), 'sentAt') || '<div class="empty">No sent posts yet.</div>';
+    else if (v === 'drafts') html = byDay(filtered(s.drafts), 'createdAt') || '<div class="empty">No drafts.</div>';
+    else html = s.unscheduled.length ? '<div class="posts">' + s.unscheduled.map(function (u) {
+      // The library's own thumbnail and stream for this video (same ids as its cards).
+      var q = 'id=' + encodeURIComponent(u.id);
+      return '<div class="gap"><button type="button" class="vprev" data-play="' + esc(q) + '" data-name="' + esc(u.name) + '" aria-label="Play ' + esc(u.name) + '" style="background-image:url(&quot;/thumb?' + esc(q) + '&quot;)"><span class="play" aria-hidden="true">▶</span></button>' +
+        '<div class="info"><b>' + esc(u.name) + '</b><span class="pill">' + esc(u.id.split('/')[0]) + '</span>' + (u.approvedAt ? '<span class="sub" style="flex-basis:auto">approved ' + esc(ago(u.approvedAt)) + '</span>' : '') +
+        (u.description ? '<div class="sub">' + esc(u.description) + '</div>' : '') +
+        '<div class="acts">' + schedPill(u.id) + '<button type="button" class="btn sm primary" data-sched="' + esc(u.id) + '" data-name="' + esc(u.name) + '">Schedule on Buffer</button><button type="button" class="btn sm" data-unapprove="' + esc(u.id) + '" data-name="' + esc(u.name) + '">Unapprove</button><button type="button" class="btn sm danger" data-del="' + esc(u.id) + '" data-name="' + esc(u.name) + '">Delete</button></div></div></div>';
+    }).join('') + '</div>' : '<div class="empty">Every approved video is scheduled or posted somewhere.</div>';
+    if ($('list').__html !== html) { $('list').innerHTML = html; $('list').__html = html; }
+  }
+
+  // Missing: for one brand, every video already on one of its accounts, checked on each of its networks.
+  var NET_NAME = { tiktok: 'TikTok', x: 'X', instagram: 'Instagram' };
+  function handle(a) { return a ? '@' + String(a).split(':').slice(1).join(':') : ''; }
+  function whereChip(n, w, b) {
+    var net = b.networks.filter(function (x) { return x.network === n; })[0] || {}, d = w.at ? new Date(w.at) : null;
+    var label = { posted: '✓ Posted', queued: 'Queued' + (d ? ' · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time(d) : ''), draft: 'Draft only', missing: 'Missing', none: 'No account' }[w.status];
+    var tip = w.status === 'none' ? b.name + ' has no ' + NET_NAME[n] + ' account in Buffer yet'
+      : w.status === 'missing' ? 'Not on ' + NET_NAME[n] + ' ' + handle(w.account) + (net.inBuffer && !net.connected ? ' (disconnected in Buffer)' : '')
+      : w.status === 'draft' ? 'Only a draft in Buffer on ' + handle(w.account) + ': it won\'t go out until it is scheduled'
+      : (w.status === 'posted' ? 'Posted on ' : 'Queued on ') + NET_NAME[n] + ' ' + handle(w.account);
+    return '<span class="wh ' + esc(w.status) + '" title="' + esc(tip) + '">' + netBadge(n) + '<b>' + esc(NET_NAME[n]) + '</b><span class="st">' + esc(label) + '</span>' +
+      (safeUrl(w.link) ? '<a href="' + esc(w.link) + '" target="_blank" rel="noopener" aria-label="Open the ' + esc(NET_NAME[n]) + ' post">↗</a>' : '') + '</span>';
+  }
+  function renderMissing() {
+    var all = state.missing || [], list = $('list');
+    var b = all.filter(function (x) { return x.key === brand; })[0] || all[0];
+    if (!b) { list.innerHTML = '<div class="empty">Nothing to compare yet.</div>'; list.__html = ''; return; }
+    brand = b.key;
+    var gaps = b.videos.filter(function (x) { return x.missing.length; });
+    var shown = msFilter === 'all' ? b.videos : gaps;
+    var nets = b.networks.filter(function (n) { return n.accounts.length; });
+    $('summary').textContent = b.name + ' videos already on one of its accounts, checked on ' + nets.map(function (n) { return NET_NAME[n.network] + ' ' + n.accounts.map(handle).join(', '); }).join(', ') + '.';
+    var notes = b.networks.map(function (n) {
+      if (!n.accounts.length) return b.name + ' has no ' + NET_NAME[n.network] + ' account in Buffer, so ' + NET_NAME[n.network] + ' isn\'t checked. Connect one in Buffer and it shows up here.';
+      if (n.inBuffer && !n.connected) return NET_NAME[n.network] + ' ' + n.accounts.map(handle).join(', ') + ' is disconnected in Buffer: reconnect it there to post the missing ones.';
+      return '';
+    }).filter(Boolean);
+    if (b.unmatched) notes.push(b.unmatched + ' Buffer post' + (b.unmatched === 1 ? '' : 's') + ' on ' + b.name + ' channels match no Library card, so ' + (b.unmatched === 1 ? 'it isn\'t' : 'they aren\'t') + ' compared. A post is matched by its link or exact caption under the card\'s "Where it\'s posted".');
+    var html = '<div class="msbar"><div class="toolbar"><div class="chips" role="group" aria-label="Brand">' + all.map(function (x) {
+        var n = x.videos.filter(function (v) { return v.missing.length; }).length;
+        return '<button type="button" class="chip' + (x.key === b.key ? ' on' : '') + '" data-brand="' + esc(x.key) + '" aria-pressed="' + (x.key === b.key) + '">' + esc(x.name) + (n ? ' · ' + n : '') + '</button>';
+      }).join('') + '</div><div class="chips" role="group" aria-label="Show">' +
+      '<button type="button" class="chip' + (msFilter !== 'all' ? ' on' : '') + '" data-msfilter="missing" aria-pressed="' + (msFilter !== 'all') + '">Missing somewhere (' + gaps.length + ')</button>' +
+      '<button type="button" class="chip' + (msFilter === 'all' ? ' on' : '') + '" data-msfilter="all" aria-pressed="' + (msFilter === 'all') + '">All ' + b.videos.length + '</button></div></div>' +
+      notes.map(function (t) { return '<div class="notice">' + esc(t) + '</div>'; }).join('') + '</div>' +
+      (shown.length ? '<div class="posts">' + shown.map(function (u) {
+        var q = 'id=' + encodeURIComponent(u.id);
+        return '<div class="gap"><button type="button" class="vprev" data-play="' + esc(q) + '" data-name="' + esc(u.name) + '" aria-label="Play ' + esc(u.name) + '" style="background-image:url(&quot;/thumb?' + esc(q) + '&quot;)"><span class="play" aria-hidden="true">▶</span></button>' +
+          '<div class="info"><b>' + esc(u.name) + '</b><span class="pill">' + esc(u.id.split('/')[0]) + '</span>' +
+          (u.missing.length ? '<span class="pill warn">Missing on ' + esc(u.missing.map(function (n) { return NET_NAME[n]; }).join(' and ')) + '</span>' : '<span class="pill sched-ok">On every network</span>') +
+          (u.description ? '<div class="sub">' + esc(u.description) + '</div>' : '') +
+          '<div class="where">' + ['tiktok', 'x', 'instagram'].map(function (n) { return whereChip(n, u.where[n], b); }).join('') + '</div></div></div>';
+      }).join('') + '</div>'
+      : '<div class="empty">' + (b.videos.length ? 'Every ' + b.name + ' video that is out is on all of its networks.' : 'No ' + b.name + ' video is queued or posted yet.') + '</div>');
+    if (list.__html !== html) { list.innerHTML = html; list.__html = html; }
+  }
+
+  function load() {
+    if (document.hidden) return;
+    fetch('/api/buffer/state').then(function (r) { return r.json(); }).then(function (j) { state = j; render(); })
+      .catch(function () { $('fetched').textContent = 'The Studio server is not answering'; });
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'chanBtn') { toggleMenu($('chanMenu').hidden); return; }
+    if (b.dataset.play) { var pl = $('player'), v = pl.querySelector('video'); $('playerCap').textContent = b.dataset.name || ''; v.src = '/video?' + b.dataset.play; pl.showModal(); v.play().catch(function () {}); return; }
+    if (b.id === 'playerClose') { $('player').close(); return; }
+    if (b.dataset.del) { delId = b.dataset.del; $('delName').textContent = b.dataset.name || delId; $('delMsg').textContent = ''; $('delGo').disabled = false; $('delGo').textContent = 'Move to Trash'; $('delDlg').showModal(); $('delCancel').focus(); return; }
+    if (b.id === 'delCancel') { $('delDlg').close(); return; }
+    if (b.dataset.unapprove) { unId = b.dataset.unapprove; $('unName').textContent = b.dataset.name || unId; $('unMsg').textContent = ''; $('unGo').disabled = false; $('unGo').textContent = 'Unapprove'; $('unDlg').showModal(); $('unCancel').focus(); return; }
+    if (b.id === 'unCancel') { $('unDlg').close(); return; }
+    if (b.dataset.sched) { openSched(b.dataset.sched, b.dataset.name); return; }
+    if (b.dataset.sact) { schedAction(b); return; }
+    if (b.dataset.pick) { sc.pick = b.dataset.pick; drawSched(); return; }
+    if (b.id === 'unGo') {
+      b.disabled = true; $('unCancel').disabled = true; b.innerHTML = '<span class="spin" aria-hidden="true"></span> Unapproving…';
+      // The library's own label: approved off (the card, file and links stay).
+      fetch('/api/label', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: unId, approved: false }) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Could not unapprove it'); }); })
+        .then(function () {
+          state.unscheduled = state.unscheduled.filter(function (u) { return u.id !== unId; });
+          $('unDlg').close(); render(); load();
+        })
+        .catch(function (err) { $('unMsg').textContent = 'Not unapproved: ' + err.message; b.disabled = false; b.textContent = 'Try again'; })
+        .then(function () { $('unCancel').disabled = false; });
+      return;
+    }
+    if (b.id === 'delGo') {
+      b.disabled = true; $('delCancel').disabled = true; b.innerHTML = '<span class="spin" aria-hidden="true"></span> Moving to Trash…';
+      // The library's own delete: the file goes to the Trash, its labels stay for Put Back.
+      fetch('/api/trash', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: delId }) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Could not move it to the Trash'); }); })
+        .then(function () {
+          state.unscheduled = state.unscheduled.filter(function (u) { return u.id !== delId; });
+          $('delDlg').close(); render(); load();
+        })
+        .catch(function (err) { $('delMsg').textContent = 'Not deleted: ' + err.message; b.disabled = false; b.textContent = 'Try again'; })
+        .then(function () { $('delCancel').disabled = false; });
+      return;
+    }
+    if (b.dataset.chan !== undefined) {
+      chan = b.dataset.chan; try { localStorage.setItem('buffer.channel', chan); } catch (e) {}
+      toggleMenu(false); $('chanBtn').focus();
+      if (view() === 'settings' || view() === 'unscheduled' || view() === 'missing') location.hash = '#queue';
+      render(); return;
+    }
+    if (b.dataset.cmfilter) { cmFilter = b.dataset.cmfilter; render(); return; }
+    if (b.dataset.brand) { brand = b.dataset.brand; try { localStorage.setItem('buffer.brand', brand); } catch (e) {} render(); return; }
+    if (b.dataset.msfilter) { msFilter = b.dataset.msfilter; render(); return; }
+    if (b.dataset.cact) return commentAction(b);
+    if (b.id === 'refresh') {
+      b.disabled = true; $('fetched').textContent = 'Refreshing from Buffer…';
+      post('/api/buffer/refresh').then(function (j) { state = j; render(); }).catch(function (err) { $('err').hidden = false; $('err').textContent = err.message; }).then(function () { b.disabled = false; });
+    }
+    if (b.id === 'disconnect') {
+      if (!confirm('Disconnect Buffer? The saved key is deleted from this Mac (Buffer itself is not changed).')) return;
+      post('/api/buffer/key', { key: '' }).then(function (j) { state = j; render(); $('keyMsg').className = 'msg ok'; $('keyMsg').textContent = 'Disconnected.'; });
+    }
+  });
+  $('keyForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var k = $('key').value.trim(), m = $('keyMsg'), btn = e.submitter || this.querySelector('[type=submit]');
+    if (!k) { m.className = 'msg err'; m.textContent = 'Paste the key first.'; return; }
+    btn.disabled = true; m.className = 'msg'; m.textContent = 'Checking the key with Buffer…';
+    post('/api/buffer/key', { key: k }).then(function (j) { $('key').value = ''; state = j; m.className = 'msg ok'; m.textContent = 'Connected.'; render(); setTimeout(function () { location.hash = '#queue'; }, 700); })
+      .catch(function (err) { m.className = 'msg err'; m.textContent = err.message; })
+      .then(function () { btn.disabled = false; });
+  });
+  window.addEventListener('hashchange', function () { render(); $('title').focus({ preventScroll: true }); window.scrollTo(0, 0); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+  if (!TOKEN) { document.body.classList.add('readonly'); $('readonly').hidden = false; }
+  var delId = '', unId = '';
+
+  // ── Schedule on Buffer ──
+  // sc: the open modal (video id, name, the server's record, the owner's picks and edited captions).
+  var sc = null, schedStates = {}, scTimer = null;
+  var STEP_ORDER = ['waiting', 'composer', 'uploaded', 'captioned', 'saved', 'done'];
+  var STEP_TEXT = { composer: 'Opening the composer', uploaded: 'Uploading the video', captioned: 'Typing the caption', saved: 'Saving in Buffer', done: 'Checked in Buffer' };
+  function schedPill(id) {
+    var v = schedStates[id]; if (!v) return '';
+    if (v.state === 'preparing' || v.state === 'working') return '<span class="pill sched-busy"><span class="spin" aria-hidden="true"></span> Scheduling…</span>';
+    if (v.state === 'drafted') return '<span class="pill sched-ok">Draft saved in Buffer</span>';
+    if (v.state === 'failed' || v.state === 'unclear') return '<span class="pill warn">Schedule needs a look</span>';
+    return '';
+  }
+  function netName(n) { return n === 'x' ? 'X' : n === 'tiktok' ? 'TikTok' : 'Instagram'; }
+  function chosen() {
+    var t = (sc.v && sc.v.targets) || [];
+    return sc.pick === 'all' ? t : t.filter(function (x) { return x.network === sc.pick; });
+  }
+  function openSched(id, name) {
+    sc = { id: id, name: name, v: null, pick: 'all', caps: {}, note: '', mode: null, sending: false, msg: '' };
+    $('schedBody').innerHTML = '<div class="in"><div class="status" role="status"><span class="spin" aria-hidden="true"></span>Loading…</div></div>';
+    $('schedDlg').showModal();
+    pollSched(true);
+  }
+  function pollSched(first) {
+    clearTimeout(scTimer); if (!sc) return;
+    fetch('/api/buffer/schedule?ids=' + encodeURIComponent(sc.id)).then(function (r) { return r.json(); }).then(function (j) {
+      if (!sc) return; var v = j.videos[0];
+      var wasBusy = sc.v && (sc.v.state === 'captioning'); sc.v = v; schedStates[sc.id] = v;
+      if (sc.mode === null) sc.mode = v.firstDone ? 'schedule' : 'draft';
+      // Fresh captions from Claude fill the boxes (only boxes the owner hasn't typed in).
+      if (v.captions && (first || wasBusy)) ['x', 'tiktok', 'instagram'].forEach(function (n) { if (sc.caps[n] == null) sc.caps[n] = v.captions[n]; });
+      // First open with no captions yet: Claude writes them straight away.
+      if (first && (v.state === 'idle' || !v.state) && !v.captions && v.targets.length) { sc.v.state = 'captioning'; schedPost('captions', { id: sc.id }); }
+      drawSched();
+      var busy = ['captioning', 'preparing', 'working'].indexOf(sc.v.state) >= 0;
+      scTimer = setTimeout(pollSched, busy ? 1500 : 8000);
+    }).catch(function () { scTimer = setTimeout(pollSched, 4000); });
+  }
+  function schedPost(what, body) {
+    sc.sending = what; drawSched();
+    return post('/api/buffer/schedule/' + what, body).then(function (v) { if (sc) { sc.v = v; schedStates[sc.id] = v; } })
+      .catch(function (err) { if (sc) sc.msg = err.message; })
+      .then(function () { if (sc) { sc.sending = false; drawSched(); pollSched(); } render(); });
+  }
+  function drawSched() {
+    if (!sc || !sc.v) return;
+    var v = sc.v, st = v.state || 'idle', a = document.activeElement;
+    // Don't redraw under the owner's cursor while they type.
+    if (a && $('schedBody').contains(a) && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT') && st !== 'preparing' && st !== 'working') return;
+    var head = '<h2 id="schedTitle">Schedule on Buffer</h2><div class="vid"><div class="t" style="background-image:url(&quot;/thumb?id=' + esc(encodeURIComponent(sc.id)) + '&quot;)"></div><b>' + esc(sc.name) + '</b></div>';
+    var body, foot;
+    if (!v.targets.length) {
+      body = '<div class="notice">This video has no connected Buffer account to post to. A video goes to the accounts of its folder\'s brand (brands in studio.config.json).</div>';
+      foot = '<button type="button" class="btn sm" data-sact="close">Close</button>';
+    } else if (st === 'preparing' || st === 'working' || st === 'drafted' || st === 'scheduled' || st === 'failed' || st === 'unclear') {
+      var draft = v.mode === 'draft';
+      body = '<div class="lbl2">' + (st === 'preparing' || st === 'working' ? (draft ? 'Saving drafts in Buffer…' : 'Scheduling in Buffer…') : draft ? 'Saved as drafts' : 'Scheduled') + '</div><ul class="steps">' +
+        (st === 'preparing' ? '<li><div class="who"><span class="spin" aria-hidden="true"></span>Preparing the video for Buffer (under 10 MB)…</div></li>' : '') +
+        (v.posts || []).map(function (p) {
+          var i = STEP_ORDER.indexOf(p.step), live = st === 'working';
+          var chain = ['composer', 'uploaded', 'captioned', 'saved', 'done'].map(function (k, n) {
+            var idx = n + 1, cls = i >= idx ? 'ok' : (live && i === idx - 1 ? 'now' : '');
+            return '<span class="' + cls + '">' + (cls === 'ok' ? '✓ ' : cls === 'now' ? '<span class="spin" aria-hidden="true"></span>' : '') + STEP_TEXT[k] + '</span>';
+          }).join('');
+          var res = p.step === 'done' ? '<span class="res" style="color:var(--ok-ink)">✓ ' + (draft ? 'Draft in Buffer' : 'Scheduled' + (p.dueAt ? ' for ' + esc(new Date(p.dueAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })) : '')) + '</span>'
+            : p.step === 'not-found' ? '<span class="res" style="color:var(--danger)">Not found in Buffer</span>' : '';
+          return '<li><div class="who">' + netBadge(p.service) + netName(p.network) + ' @' + esc(p.name) + res + '</div><div class="chain">' + chain + '</div><div class="sub">' + esc(p.caption) + '</div></li>';
+        }).join('') + '</ul>' +
+        (st === 'failed' ? '<div class="notice err">Not saved: ' + esc(v.error) + '</div>' : '') +
+        (st === 'unclear' ? '<div class="notice err">⚠ ' + esc(v.error) + '</div><label class="sub"><input type="checkbox" id="schedUnclear"' + (sc.unclearOk ? ' checked' : '') + '> I checked Buffer\'s Drafts and Queue</label>' : '') +
+        (st === 'drafted' ? '<div class="sub">Open Buffer\'s Drafts to look at them. When you\'re happy, schedule from here with "Add to queue".</div>' : '') +
+        (st === 'preparing' || st === 'working' ? '<div class="sub">This uses Buffer in your Chrome (a Buffer tab opens there). You can close this window; it keeps going.</div>' : '');
+      foot = (st === 'preparing' || st === 'working') ? '<button type="button" class="btn sm" data-sact="close">Close (keeps going)</button>'
+        : '<button type="button" class="btn sm" data-sact="close">Close</button>' + (st === 'scheduled' ? '' : '<button type="button" class="btn sm primary" data-sact="again"' + (st === 'unclear' && !sc.unclearOk ? ' disabled' : '') + '>' + (st === 'drafted' ? 'Schedule it now' : 'Try again') + '</button>');
+    } else {
+      var t = v.targets, nets = {};
+      t.forEach(function (x) { nets[x.network] = (nets[x.network] || []).concat('@' + x.name); });
+      var opts = ['all'].concat(Object.keys(nets));
+      var seg = '<div class="seg" role="radiogroup" aria-label="Where">' + opts.map(function (o) {
+        var lbl = o === 'all' ? 'All' : netName(o), sub = o === 'all' ? t.map(function (x) { return '@' + x.name; }).join(' · ') : nets[o].join(' · ');
+        var icon = o === 'all' ? '' : netBadge(o === 'x' ? 'twitter' : o);
+        return '<button type="button" role="radio" aria-checked="' + (sc.pick === o) + '" data-pick="' + o + '"><b>' + icon + lbl + '</b><small>' + esc(sub) + '</small></button>';
+      }).join('') + '</div>';
+      var writing = st === 'captioning';
+      var caps = (chosen().map(function (x) { return x.network; }).filter(function (n, i, all) { return all.indexOf(n) === i; })).map(function (n) {
+        var val = sc.caps[n] || '', over = n === 'x' && val.length > 280;
+        return '<div class="capbox"><div class="hd">' + netBadge(n === 'x' ? 'twitter' : n) + netName(n) + ' caption<span class="cnt' + (over ? ' over' : '') + '">' + (n === 'x' ? val.length + ' / 280' : val.length + ' chars') + '</span></div>' +
+          '<textarea data-cap="' + n + '" rows="' + (n === 'x' ? 4 : 2) + '" aria-label="' + netName(n) + ' caption"' + (writing ? ' disabled placeholder="Claude is writing…"' : '') + '>' + esc(val) + '</textarea></div>';
+      }).join('');
+      var how = '<div class="how"><div class="lbl2">How</div>' +
+        '<label><input type="radio" name="schedHow" value="draft"' + (sc.mode === 'draft' ? ' checked' : '') + '><span>Save as draft in Buffer' + (v.firstDone ? '' : ' (recommended the first time)') + '<small>Nothing goes public; check it in Buffer\'s Drafts.</small></span></label>' +
+        '<label><input type="radio" name="schedHow" value="schedule"' + (sc.mode === 'schedule' ? ' checked' : '') + '><span>Add to queue<small>Posts in the next free slot of each account\'s schedule.</small></span></label></div>';
+      body = '<div class="lbl2">Where</div>' + seg +
+        (writing ? '<div class="status" role="status"><span class="spin" aria-hidden="true"></span>Claude is writing captions in each account\'s voice…</div>' : '') +
+        (st === 'caption-failed' ? '<div class="notice err">' + esc(v.error) + '</div>' : '') + caps +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="schedNote" placeholder="Direction for Claude (optional), e.g. mention the cheese" value="' + esc(sc.note) + '" style="flex:1 1 220px;width:auto"' + (writing ? ' disabled' : '') + '>' +
+        '<button type="button" class="btn sm" data-sact="captions"' + (writing || sc.sending ? ' disabled' : '') + '>' + (sc.sending === 'captions' ? '<span class="spin" aria-hidden="true"></span> Starting…' : v.captions ? 'Rewrite captions' : 'Write captions') + '</button></div>' + how;
+      var go = sc.mode === 'draft' ? 'Save draft' + (chosen().length > 1 ? 's' : '') + ' in Buffer' : 'Add to queue';
+      foot = '<button type="button" class="btn sm" data-sact="close">Cancel</button><button type="button" class="btn sm primary" data-sact="start"' + (writing || sc.sending ? ' disabled' : '') + '>' + (sc.sending === 'start' ? '<span class="spin" aria-hidden="true"></span> Starting…' : esc(go)) + '</button>';
+    }
+    $('schedBody').innerHTML = '<div class="in">' + head + body + '</div><div class="foot"><div class="msg err" role="alert">' + esc(sc.msg || '') + '</div>' + foot + '</div>';
+  }
+  function schedAction(b) {
+    var act = b.dataset.sact; sc.msg = '';
+    if (act === 'close') { $('schedDlg').close(); return; }
+    if (act === 'captions') { sc.caps = {}; sc.v.state = 'captioning'; schedPost('captions', { id: sc.id, note: sc.note }); return; }
+    if (act === 'again') {
+      if (sc.v.state === 'drafted') sc.mode = 'schedule';
+      sc.v = Object.assign({}, sc.v, { state: 'captioned', captions: sc.v.captions || {} });
+      (sc.v.posts || []).forEach(function (p) { if (sc.caps[p.network] == null) sc.caps[p.network] = p.caption; });
+      if (sc.unclearOk) sc.confirmUnclear = true;
+      drawSched(); return;
+    }
+    if (act === 'start') {
+      var picks = chosen(), caps = {};
+      picks.forEach(function (x) { caps[x.network] = (sc.caps[x.network] || '').trim(); });
+      if (picks.some(function (x) { return !caps[x.network]; })) { sc.msg = 'Every chosen account needs a caption.'; drawSched(); return; }
+      if (caps.x && caps.x.length > 280) { sc.msg = 'The X caption is over 280 characters.'; drawSched(); return; }
+      schedPost('start', { id: sc.id, mode: sc.mode, accounts: picks.map(function (x) { return x.account; }), captions: caps, confirmUnclear: !!sc.confirmUnclear });
+    }
+  }
+  $('schedDlg').addEventListener('close', function () { clearTimeout(scTimer); sc = null; render(); });
+  $('schedDlg').addEventListener('click', function (e) { if (e.target === this) this.close(); });
+  document.addEventListener('input', function (e) {
+    if (!sc) return; var t = e.target;
+    if (t.dataset && t.dataset.cap) { sc.caps[t.dataset.cap] = t.value; var c = t.parentNode.querySelector('.cnt'); if (c) { c.textContent = t.dataset.cap === 'x' ? t.value.length + ' / 280' : t.value.length + ' chars'; c.classList.toggle('over', t.dataset.cap === 'x' && t.value.length > 280); } }
+    if (t.id === 'schedNote') sc.note = t.value;
+  });
+  document.addEventListener('change', function (e) {
+    if (!sc) return;
+    if (e.target.name === 'schedHow') { sc.mode = e.target.value; drawSched(); }
+    if (e.target.id === 'schedUnclear') { sc.unclearOk = e.target.checked; drawSched(); }
+  });
+  // The cards' small status pills ("Scheduling…", "Draft saved in Buffer").
+  function loadSchedStates() {
+    var ids = state && state.unscheduled ? state.unscheduled.map(function (u) { return u.id; }) : [];
+    if (!ids.length) return;
+    fetch('/api/buffer/schedule?ids=' + encodeURIComponent(ids.join(','))).then(function (r) { return r.json(); }).then(function (j) {
+      j.videos.forEach(function (v) { schedStates[v.id] = v; }); if (view() === 'unscheduled') render();
+    }).catch(function () {});
+  }
+  setInterval(function () { if (view() === 'unscheduled' && !document.hidden) loadSchedStates(); }, 5000);
+  $('unDlg').addEventListener('click', function (e) { if (e.target === this && !$('unGo').disabled) this.close(); });
+  $('unDlg').addEventListener('cancel', function (e) { if ($('unGo').disabled && $('unCancel').disabled) e.preventDefault(); });   // not while it's saving
+  $('delDlg').addEventListener('click', function (e) { if (e.target === this && !$('delGo').disabled) this.close(); });
+  $('delDlg').addEventListener('cancel', function (e) { if ($('delGo').disabled && $('delCancel').disabled) e.preventDefault(); });   // not while it's moving
+  // Closing the player (Close, Esc or a click beside the video) stops the sound.
+  $('player').addEventListener('close', function () { var v = this.querySelector('video'); v.pause(); v.removeAttribute('src'); v.load(); });
+  $('player').addEventListener('click', function (e) { if (e.target === this) this.close(); });
+
+  // ── Channel switcher menu ──
+  function toggleMenu(open) {
+    $('chanMenu').hidden = !open; $('chanBtn').setAttribute('aria-expanded', String(!!open));
+    if (open) { var sel = $('chanMenu').querySelector('[aria-selected=true]') || $('chanMenu').querySelector('[role=option]'); if (sel) sel.focus(); }
+  }
+  document.addEventListener('click', function (e) { if (!$('chanMenu').hidden && !e.target.closest('#chanPick')) toggleMenu(false); });
+  document.addEventListener('keydown', function (e) {
+    if ($('chanMenu').hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); toggleMenu(false); $('chanBtn').focus(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    var opts = [].slice.call($('chanMenu').querySelectorAll('[role=option]')), i = opts.indexOf(document.activeElement);
+    var next = opts[(i + (e.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length]; if (next) next.focus();
+  });
+
+  // ── Comments ──
+  function needsReply(c) { var st = c.reply && c.reply.state; return st !== 'sent' && c.status !== 'replied' && !(c.ownerReplies || []).length; }
+  function btn(act, id, label, busyLabel, cls, disabled) {
+    var busy = pending[id] === act;
+    return '<button class="btn sm' + (cls ? ' ' + cls : '') + '" type="button" data-cact="' + act + '" data-id="' + esc(id) + '"' + (busy || disabled || pending[id] ? ' disabled' : '') + '>' +
+      (busy ? '<span class="spin" aria-hidden="true"></span> ' + busyLabel : label) + '</button>';
+  }
+  function replyHtml(c) {
+    var r = c.reply || {}, id = c.id, st = r.state, ch = chanOf(c.channelId), voice = ch ? '@' + ch.name : 'this channel';
+    if (st === 'drafting') return '<div class="replybox"><div class="state" role="status"><span class="spin" aria-hidden="true"></span>Claude is writing a reply in ' + esc(voice) + '\'s voice…</div>' + (r.note ? '<div class="sub">Your direction: ' + esc(r.note) + '</div>' : '') + '</div>';
+    if (st === 'sending') return '<div class="replybox"><div class="state" role="status"><span class="spin" aria-hidden="true"></span>Sending through Buffer… (opening Buffer in Chrome and posting your approved reply)</div><div class="sent-text">' + esc(r.approved) + '</div></div>';
+    if (st === 'sent') return '<div class="replybox"><div class="state ok">✓ Sent' + (r.sentAt ? ' ' + esc(ago(r.sentAt)) : '') + '</div><div class="sent-text">' + esc(r.approved) + '</div></div>';
+    if (st === 'drafted' || st === 'send-failed' || st === 'send-unclear') {
+      var val = edits[id] != null ? edits[id] : (r.approved && st !== 'drafted' ? r.approved : r.draft);
+      var msg = st === 'send-failed' ? '<div class="state bad">Not sent: ' + esc(r.error) + '</div>'
+        : st === 'send-unclear' ? '<div class="state warn">⚠ ' + esc(r.error) + '</div><label class="sub"><input type="checkbox" data-unclear="' + esc(id) + '"' + (unclearOk[id] ? ' checked' : '') + '> I checked Buffer: it was not sent</label>'
+        : '<div class="state">Draft ready: edit it if you like, then approve to send it.</div>';
+      return '<div class="replybox">' + msg + '<textarea data-edit="' + esc(id) + '" rows="2" aria-label="Reply text">' + esc(val) + '</textarea>' +
+        '<div class="row">' + btn('approve', id, 'Approve &amp; send', 'Starting…', 'primary', st === 'send-unclear' && !unclearOk[id]) +
+        '<input type="text" data-note="' + esc(id) + '" placeholder="What to change (for Rewrite)" value="' + esc(notes[id] || '') + '" style="flex:1 1 180px;width:auto">' +
+        btn('draft', id, 'Rewrite', 'Starting…') + btn('discard', id, 'Discard', 'Discarding…') + '</div>' +
+        '<div class="sub">Nothing is posted until you press Approve &amp; send.</div></div>';
+    }
+    return '<div class="replybox">' + (st === 'draft-failed' ? '<div class="state bad">' + esc(r.error) + '</div>' : '') +
+      '<div class="row"><input type="text" data-note="' + esc(id) + '" placeholder="Direction for Claude (optional), e.g. rate it 9.1" value="' + esc(notes[id] || '') + '" style="flex:1 1 220px;width:auto">' +
+      btn('draft', id, st === 'draft-failed' ? 'Try again' : 'Reply with Claude', 'Starting…') + '</div></div>';
+  }
+  function commentHtml(c) {
+    var ch = chanOf(c.channelId), st = c.reply && c.reply.state, p = c.post;
+    return '<li class="cmt' + (st === 'drafting' || st === 'sending' ? ' busy' : '') + (st === 'sent' ? ' done' : '') + '"><div class="who"><b>@' + esc(c.handle) + '</b>' + (c.name && c.name !== c.handle ? esc(c.name) : '') + ' · ' + esc(c.publishedAt ? ago(c.publishedAt) : '') + ' · ' + chanHtml(ch) + (c.parentId ? '<span class="pill">reply in a thread</span>' : '') + '</div>' +
+      '<div class="said">' + esc(c.text || '(no text)') + '</div>' + (safeUrl(c.photo) ? '<img class="photo" alt="Photo in the comment" src="' + esc(c.photo) + '">' : '') +
+      (p ? '<div class="ctx">' + (safeUrl(p.thumb) ? '<div class="thumb" style="background-image:url(&quot;' + esc(encodeURI(p.thumb)) + '&quot;)"></div>' : '') + '<span>On: ' + esc(p.text || '(no caption)') + '</span>' + (p.video ? '<span class="pill lib">' + esc(p.video.split('/').slice(1).join('/')) + '</span>' : '') + '</div>' : '') +
+      (c.ownerReplies || []).map(function (r) { return '<div class="yours"><b>@' + esc(r.handle) + ' replied:</b> ' + esc(r.text) + '</div>'; }).join('') + replyHtml(c) + '</li>';
+  }
+  function renderComments() {
+    var list = $('list');
+    if (view() !== 'comments') return;
+    if (!state || !state.connected) { list.innerHTML = '<div class="empty">Connect Buffer first (<a class="ext" href="#settings">API key</a>): the app needs your channels before it can collect comments.</div>'; list.__html = ''; return; }
+    if (!cm) { list.innerHTML = '<div class="status" role="status"><span class="spin" aria-hidden="true"></span>Loading comments…</div>'; list.__html = ''; return; }
+    var k = cm.collect || {}, running = k.state === 'running' || !!pending.collect;
+    var shown = cm.comments.filter(function (c) { return (!chan || c.channelId === chan) && (cmFilter === 'all' || needsReply(c) || (c.reply && c.reply.state && c.reply.state !== 'sent')); });
+    $('summary').textContent = shown.length + (cmFilter === 'all' ? ' comments' : ' need a reply') + (chan ? ' on ' + ((chanOf(chan) || {}).displayName || '') : ' on all channels');
+    var status = running ? '<span class="status" role="status"><span class="spin" aria-hidden="true"></span>Collecting from Buffer through Chrome… (a Buffer tab opens and closes in Chrome)</span>'
+      : '<span class="status">' + (k.lastOkAt ? 'Collected ' + esc(ago(k.lastOkAt)) + (k.added != null ? ' · ' + k.added + ' new' : '') : 'Not collected yet') + (cm.everyMin ? ' · every ' + cm.everyMin + ' min' : '') + '</span>';
+    var html = '<div class="toolbar"><button class="btn sm" type="button" data-cact="collect" data-id="collect"' + (running ? ' disabled' : '') + '>' + (running ? '<span class="spin" aria-hidden="true"></span> Collecting…' : 'Collect now') + '</button>' + status +
+      '<div class="chips" role="group" aria-label="Show"><button type="button" class="chip' + (cmFilter === 'open' ? ' on' : '') + '" data-cmfilter="open">Needs a reply</button><button type="button" class="chip' + (cmFilter === 'all' ? ' on' : '') + '" data-cmfilter="all">All</button></div></div>' +
+      (k.error && !running ? '<div class="notice err">Last collection failed: ' + esc(k.error) + '</div>' : '') +
+      ((k.errors || []).length && !running ? '<div class="notice">Some channels could not be read: ' + esc(k.errors.join(' · ')) + '</div>' : '') +
+      (shown.length ? '<ul class="cmts">' + shown.slice(0, 200).map(commentHtml).join('') + '</ul>' : '<div class="empty">' + (cm.comments.length ? 'No comments waiting for a reply.' : 'No comments yet. Press Collect now (Chrome must be open and signed in to Buffer).') + '</div>');
+    // Don't redraw under the owner's cursor while they edit a reply or a direction.
+    var a = document.activeElement;
+    if (a && list.contains(a) && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT') && !pending[a.dataset.edit || a.dataset.note]) return;
+    if (list.__html !== html) { list.innerHTML = html; list.__html = html; }
+  }
+  function commentAction(b) {
+    var act = b.dataset.cact, id = b.dataset.id, body = { id: id };
+    if (act === 'collect') { body = {}; pending.collect = 'collect'; }
+    else if (act === 'draft') { body.note = notes[id] || ''; pending[id] = 'draft'; }
+    else if (act === 'approve') {
+      var box = document.querySelector('[data-edit="' + CSS.escape(id) + '"]');
+      var text = String(edits[id] != null ? edits[id] : (box ? box.value : '')).trim();
+      if (!text) { alert('The reply is empty.'); return; }
+      body.text = text; body.confirmUnclear = !!unclearOk[id]; pending[id] = 'approve';
+    } else if (act === 'discard') { if (!confirm('Discard this draft?')) return; pending[id] = 'discard'; }
+    if (document.activeElement) document.activeElement.blur();
+    renderComments();
+    post('/api/buffer/comments/' + act, body).then(function (j) {
+      cm = j; if (act !== 'collect') { delete edits[id]; delete unclearOk[id]; if (act !== 'discard') delete notes[id]; }
+    }).catch(function (err) { alert(err.message); })
+      .then(function () { delete pending[act === 'collect' ? 'collect' : id]; renderComments(); render(); schedule(); });
+  }
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.edit) edits[t.dataset.edit] = t.value;
+    if (t.dataset && t.dataset.note) notes[t.dataset.note] = t.value;
+  });
+  document.addEventListener('change', function (e) { if (e.target.dataset && e.target.dataset.unclear) { unclearOk[e.target.dataset.unclear] = e.target.checked; renderComments(); } });
+  // Polls fast (2 s) only while something is drafting, sending or collecting.
+  var cmTimer = null;
+  function schedule() { clearTimeout(cmTimer); cmTimer = setTimeout(loadComments, cm && cm.busy ? 2000 : 30000); }
+  function loadComments() {
+    if (document.hidden) return schedule();
+    fetch('/api/buffer/comments').then(function (r) { return r.json(); }).then(function (j) { cm = j; renderComments(); render(); })
+      .catch(function () {}).then(schedule);
+  }
+
+  render(); load(); loadComments();
+  setInterval(load, 60000);   // only reads the server's copy; Buffer itself is asked at most every 30 min
+})();
+</script>
+</body>
+</html>

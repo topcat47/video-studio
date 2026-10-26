@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "filmcraft": { "command": "__HOME__/.local/bin/filmcraft-cli", "args": ["mcp", "--bridge", "127.0.0.1:9876"] },
+    "filmcraft-headless": { "command": "__HOME__/.local/bin/filmcraft-cli", "args": ["mcp"] },
+    "effectcraft": { "command": "__HOME__/.local/bin/effectcraft-cli", "args": ["mcp", "--bridge", "9877"] },
+    "effectcraft-headless": { "command": "__HOME__/.local/bin/effectcraft-cli", "args": ["mcp", "--gpu"] },
+    "photocraft": { "command": "__HOME__/.local/bin/photocraft-cli", "args": ["mcp", "--bridge", "127.0.0.1:9878", "--control-token-file", "__HOME__/.config/photocraft/control.token"] },
+    "photocraft-headless": { "command": "__HOME__/.local/bin/photocraft-cli", "args": ["mcp"] }
+  }
+}

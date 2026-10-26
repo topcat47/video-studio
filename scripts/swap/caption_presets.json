@@ -1,0 +1,67 @@
+{
+  "_about": "Caption presets for capfix_runs.py: band (fraction of the height) and capfix flags per caption style. --preset NAME picks one; --channel NAME picks the preset whose match list holds that uploader or show. Tune a new style on one chunk, then add it here with a note of the clip it was tuned on.",
+  "presets": {
+    "bold-caps": {
+      "note": "Big white upper-case podcast captions with black marks, one or two lines at 0.55-0.76 of the height. Add your channel names to \"match\".",
+      "match": [],
+      "band": [
+        0.55,
+        0.76
+      ],
+      "flags": [
+        "--glyph-hmax",
+        "100",
+        "--word-hmin",
+        "40",
+        "--word-hmax",
+        "100",
+        "--marks",
+        "--extrude",
+        "7"
+      ]
+    },
+    "glow-lowercase": {
+      "note": "Lower-case glow captions (white, amber yellow, green), one line at 0.56-0.65; amber yellow reads as skin unless --skin-bmin/--vivid-gmin are set. Upscale a 720p source to 1080x1920 first. Add your channel names to \"match\".",
+      "match": [],
+      "band": [
+        0.54,
+        0.68
+      ],
+      "flags": [
+        "--marks",
+        "--vivid-gmin",
+        "175",
+        "--skin-bmin",
+        "25"
+      ]
+    },
+    "karaoke-rim": {
+      "note": "Karaoke captions inside a blue rim at 0.76-0.85; run in ~150-frame chunks. Add your channel names to \"match\".",
+      "match": [],
+      "band": [
+        0.76,
+        0.85
+      ],
+      "flags": [
+        "--glyph-hmax",
+        "100",
+        "--word-hmin",
+        "40",
+        "--word-hmax",
+        "100",
+        "--word-wmin",
+        "80",
+        "--word-fmax",
+        "0.92",
+        "--marks",
+        "--outline",
+        "8",
+        "--merge-iou",
+        "2"
+      ]
+    }
+  },
+  "no_capfix": {
+    "grey-upcoming-karaoke": "Karaoke with grey upcoming words on white shirts: capfix can't key them. Redraw the captions with scripts/caption_states.swift."
+  }
+}

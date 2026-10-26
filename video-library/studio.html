@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Video Studio"%3E%3Cdefs%3E%3CclipPath id="vs-tile"%3E%3Crect x="4" y="4" width="56" height="56" rx="15"/%3E%3C/clipPath%3E%3CclipPath id="vs-orig"%3E%3Cpolygon points="0,0 64,0 0,64"/%3E%3C/clipPath%3E%3CclipPath id="vs-conv"%3E%3Cpolygon points="64,0 64,64 0,64"/%3E%3C/clipPath%3E%3C/defs%3E%3Cpolygon points="64,0 64,64 0,64" fill="#C6F432" clip-path="url%28#vs-tile%29"/%3E%3Crect x="5.75" y="5.75" width="52.5" height="52.5" rx="13.25" fill="none" stroke="#C6F432" stroke-width="3.5"/%3E%3Cg stroke-linejoin="round" stroke-width="3"%3E%3Cpolygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#C6F432" stroke="#C6F432" clip-path="url%28#vs-orig%29"/%3E%3Cpolygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#0E0F11" stroke="#0E0F11" clip-path="url%28#vs-conv%29"/%3E%3C/g%3E%3C/svg%3E">
+<meta name="studio-token" content="__STUDIO_TOKEN__">
+<style>
+  /* One dark look shared with the library (index.html): near-black surfaces, one electric-lime accent.
+     The dark block below repeats the same values on purpose: the Studio is always dark, whatever the Mac is set to. */
+  :root {
+    --bg: #0E0F11; --side: #111215; --panel: #17181C; --panel2: #1E2025; --ink: #F2F3F5; --ink2: #C7CAD1; --muted: #9A9DA6; --line: #25272D; --line2: #353840;
+    --accent: #C6F432; --accent-ink: #0E0F11; --accent-soft: #1C2210; --danger: #FF6B6B;
+    --wait-bg: #1C2210; --wait-ink: #D9FF66; --wait-line: #C6F432;
+    --ok-bg: #12261A; --ok-ink: #7EE0A1; --ok-line: #2B5A3C; --tile: #0A0B0D; --tile2: #1E2025;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E0F11; --side: #111215; --panel: #17181C; --panel2: #1E2025; --ink: #F2F3F5; --ink2: #C7CAD1; --muted: #9A9DA6; --line: #25272D; --line2: #353840;
+      --accent: #C6F432; --accent-ink: #0E0F11; --accent-soft: #1C2210; --danger: #FF6B6B;
+      --wait-bg: #1C2210; --wait-ink: #D9FF66; --wait-line: #C6F432;
+      --ok-bg: #12261A; --ok-ink: #7EE0A1; --ok-line: #2B5A3C; --tile: #0A0B0D; --tile2: #1E2025;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  h1:focus { outline: none; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  .shell { display: flex; flex-wrap: wrap; align-content: flex-start; min-height: 100vh; }   /* short pages: don't stretch the bar */
+  nav.side { flex: 1 1 220px; max-width: 240px; background: var(--side); border-right: 1px solid var(--line); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+  @media (min-width: 781px) { nav.side { position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; } }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .brand .logo { width: 30px; height: 30px; display: block; flex: none; }
+  .navlist { display: flex; flex-direction: column; gap: 2px; }
+  .navlist a { display: flex; justify-content: space-between; align-items: center; padding: 9px 10px; border-radius: 8px; color: var(--ink2); text-decoration: none; font-size: 14px; }
+  .navlist a:hover { background: var(--panel); color: var(--ink); }
+  .navlist a.on { background: var(--panel2); color: var(--ink); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+  .count { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 700; line-height: 20px; }
+  .sidefoot { margin-top: auto; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; background: var(--bg); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok-ink); margin-right: 6px; }
+  main { flex: 999 1 560px; min-width: 0; max-width: 1180px; padding: 30px 40px 56px; display: flex; flex-direction: column; gap: 26px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+  h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .sub { color: var(--muted); font-size: 14px; }
+  body[data-page="characters"] #summary, body[data-page="skills"] #summary { display: none; }
+  /* Each page's big title already names it: its section heading stays for screen readers only. */
+  main section > h2:not(.hero) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+  a { color: var(--accent); }
+  /* Studio page: one big box to start something, like the prompt bars of the AI video tools. */
+  .compose { display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 6vh 0 2vh; }
+  .compose .hero { margin: 0; font-size: clamp(26px, 4vw, 40px); font-weight: 800; letter-spacing: -0.03em; text-transform: none; color: var(--ink); text-align: center; line-height: 1.1; }
+  .compose .hero em { font-style: normal; color: var(--accent); }
+  .compose > .sub { text-align: center; max-width: 620px; }
+  .composer { width: 100%; max-width: 760px; background: var(--panel); border: 1px solid var(--line2); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+  .composer:focus-within { border-color: var(--accent); }
+  .composer label { padding: 2px 4px 0; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .composer input[type=text] { border: 0; background: transparent; font-size: 18px; padding: 4px 4px 8px; min-height: 40px; }
+  .composer input[type=text]:focus { outline: none; }
+  .composer .bar2 { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  .composer .bar2 .btn { margin-left: auto; }
+  .pipes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pipe { text-align: left; background: var(--panel2); color: var(--ink2); border: 1px solid var(--line2); border-radius: 999px; padding: 5px 14px 5px 6px; cursor: pointer; font: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; }
+  .pipe img, .pipe .ic { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none; }
+  .pipe .ic { display: grid; place-items: center; background: var(--line2); color: var(--ink); font-size: 14px; }
+  .pipe b { font-weight: 600; }
+  .pipe .mono { color: var(--muted); }
+  .pipe:hover { border-color: var(--muted); color: var(--ink); }
+  .pipe[aria-checked="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+  .pipe[aria-checked="true"] .mono { color: var(--wait-ink); }
+  label { font-size: 13px; font-weight: 500; color: var(--ink2); }
+  input[type=text] { font: inherit; padding: 12px 14px; border: 1px solid var(--line2); border-radius: 10px; background: var(--panel); color: var(--ink); min-height: 46px; width: 100%; }
+  input[type=text]::placeholder { color: var(--muted); }
+  input[type=text]:focus-visible, .pipe:focus-visible, .btn:focus-visible, a:focus-visible, .vid:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 11px 20px; min-height: 44px; cursor: pointer; border: 1px solid var(--line2); background: var(--panel2); color: var(--ink); }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.dark { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .msg { font-size: 14px; min-height: 20px; text-align: center; }
+  .msg.err { color: var(--danger); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+  .proj { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: border-color .15s; }
+  .proj:hover { border-color: var(--line2); }
+  .proj .thumb { height: 170px; background: var(--tile); display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+  .proj .thumb img { width: 100%; height: 170px; object-fit: cover; }
+  .why { font-size: 13px; color: var(--muted); }
+  .act-err { font-size: 13px; color: var(--danger); }
+  .readonly button[data-approve], .readonly button[data-notes], .readonly button[data-redo], .readonly button[data-redo-go], .readonly button[data-stop], .readonly button[data-resume],
+  .readonly #sayBtn, .readonly #newCharBtn, .readonly #cSave, .readonly #kSave, .readonly button[data-stepsend], .readonly button[data-kedit], .readonly button[data-ksave], .readonly .upload, .readonly button[data-cmain], .readonly button[data-ccut], .readonly #startBtn { opacity: .45; pointer-events: none; }
+  .proj .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .bar { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
+  .bar span { height: 4px; border-radius: 2px; background: var(--line2); }
+  .bar span.on { background: var(--accent); }
+  .pill { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; border: 1px solid var(--line2); color: var(--ink2); white-space: nowrap; }
+  .pill.wait { background: var(--wait-bg); color: var(--wait-ink); border-color: var(--wait-line); }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-line); }
+  /* "Needs your answer" cards: lime edge and a lime stripe, so they stand apart from the plain session cards below. */
+  .gates { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .gates:empty { display: none; }
+  .gate { background: linear-gradient(180deg, var(--accent-soft), var(--panel) 140px); border: 1px solid var(--wait-line); box-shadow: inset 4px 0 0 var(--wait-line); border-radius: 14px; padding: 16px 18px 16px 22px; display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+  .gate .what { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .gates.instep .gate { background: var(--panel); }
+  .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 10px; margin-top: 4px; }
+  .opt { display: flex; flex-direction: column; border: 1px solid var(--line2); border-radius: 12px; background: var(--panel2); overflow: hidden; }
+  .opt.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px var(--accent-soft); }
+  .opt.dim { opacity: .55; }
+  .opt .ophoto { all: unset; position: relative; display: block; cursor: zoom-in; background: var(--tile); }
+  .opt .ophoto img, .opt .ophoto video { display: block; width: 100%; height: 150px; object-fit: contain; pointer-events: none; }
+  .opt .ophoto .play { position: absolute; inset: 0; margin: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 15px; padding-left: 3px; }
+  .opt .obody { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; flex: 1; }
+  .opt button.obody { cursor: pointer; }
+  .opt button.obody:hover { background: var(--panel); }
+  .opt button.obody:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 0 0 12px 12px; }
+  .opt .otop { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink); }
+  .opt .oid { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line2); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+  .opt.sel .oid { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .opt .otags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .opt .otags:empty { display: none; }
+  .pill.rec { background: var(--accent-soft); color: var(--wait-ink); border-color: var(--wait-line); }
+  .opt .owhy { font-size: 13px; line-height: 1.45; color: var(--ink2); }
+  .gate strong { font-size: 16px; }
+  .empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--line2); border-radius: 12px; padding: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tablewrap { overflow-x: auto; }
+  .runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .run { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .run .top { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .run .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn.sm { padding: 6px 12px; min-height: 34px; font-size: 13px; }
+  .pill.run-running { background: #13243A; color: #9CC6FF; border-color: #2B4D78; }
+  .pill.run-failed, .pill.run-interrupted { background: #3A1820; color: #FFADB8; border-color: #6B2A38; }
+  /* In progress: one card per video. A card opens its video's page; waiting on you, it turns lime. */
+  .videos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .vcard { list-style: none; }
+  .vlink { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 16px 44px 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; color: var(--ink); text-decoration: none; }
+  .vlink:hover { border-color: var(--line2); }
+  .vlink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .vcard.wait .vlink { border-color: var(--wait-line); box-shadow: inset 4px 0 0 var(--wait-line); }
+  .vlink .top { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .vlink .top { flex-wrap: nowrap; align-items: flex-start; }
+  .vlink .vthumb { flex: none; width: 44px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--tile); border: 1px solid var(--line); }
+  .vlink .vname { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .vlink .top strong { font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vlink .vsub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vlink .top .pill { flex: none; margin-top: 2px; }
+  .vlink .chev { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 22px; color: var(--muted); }
+  .sess { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+  .sess .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dsessions { display: flex; flex-direction: column; gap: 10px; }
+  .dsessions h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: inherit; font-size: 13px; display: inline-flex; gap: 8px; align-items: center; background: var(--panel); color: var(--ink2); border: 1px solid var(--line2); border-radius: 999px; padding: 4px 12px 4px 4px; cursor: pointer; }
+  .chip.on { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .dthumb { width: 84px; height: 112px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--tile); flex: none; }
+  .dtile { margin: 0; flex: none; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .dtile figcaption { font-size: 12px; color: var(--muted); }
+  .dtile figcaption a { color: var(--ink2); }
+  .ovid { all: unset; position: relative; display: grid; place-items: center; width: 84px; height: 112px; border-radius: 10px; border: 1px solid var(--line2); background: var(--tile); overflow: hidden; cursor: pointer; }
+  .ovid video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .ovid .play { position: absolute; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 13px; padding-left: 2px; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+  .ovid:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ovid.none { cursor: default; font-size: 11px; color: var(--muted); text-align: center; padding: 6px; box-sizing: border-box; }
+  .dhead .acts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+  .stepbox { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .stepbox .stepnote { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* The timeline: a rail through the markers (solid where done, dotted ahead), one row per step. */
+  .stepbox .stepper { margin-top: 10px; padding: 0; border: 0; background: none; display: flex; flex-direction: column; gap: 0; max-width: 980px; }
+  .stepbox .stepper > li { position: relative; display: block; padding: 0 0 4px; }
+  .stepbox .stepper > li::before { content: ''; position: absolute; left: 21px; top: 34px; bottom: -4px; border-left: 2px dotted var(--line2); }
+  .stepbox .stepper > li.done::before { border-left: 2px solid var(--ink2); opacity: .45; }
+  .stepbox .stepper > li:last-child::before { display: none; }
+  .stepper > li > button { all: unset; box-sizing: border-box; display: flex; gap: 12px; align-items: flex-start; width: 100%; min-width: 0; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+  .stepper > li > button:hover { background: var(--panel2); }
+  .stepper > li > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+  .stepper > li.sel > button { background: var(--panel2); }
+  .stepper > li.kept .mk { border-style: dashed; }
+  .stepper .mk { position: relative; z-index: 1; background: var(--panel); }
+  .stepper .lbl { flex: 1; min-width: 0; padding-top: 2px; }
+  .stepper .lbl .pill { margin-left: 6px; vertical-align: 1px; }
+  .stepper small.sum { display: block; margin-top: 2px; font-weight: 400; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stepper > li:not(.done):not(.now) > button { padding-top: 5px; padding-bottom: 5px; }
+  .stepper .meta { flex: none; padding-top: 4px; font-size: 12px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+  .stepper .chev { flex: none; width: 16px; padding-top: 2px; color: var(--muted); font-size: 18px; line-height: 1; text-align: center; transition: transform .15s; }
+  .stepper > li.sel .chev { transform: rotate(90deg); color: var(--ink); }
+  .stepper .smini { flex: none; width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: var(--tile); border: 1px solid var(--line2); display: grid; place-items: center; font-size: 11px; color: var(--ink2); }
+  .takebar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .steppanel { margin: 2px 0 12px 44px; padding: 4px 0 4px; display: flex; flex-direction: column; gap: 12px; }
+  .steppanel .sphead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .steppanel .sphead .btn { margin-left: auto; }
+  .stepchat-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .stepchat-wrap h4 { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--ink2); }
+  .convo.stepchat { max-height: 420px; background: var(--bg); padding: 12px; }
+  @media (max-width: 640px) { .stepper .meta { display: none; } .steppanel { margin-left: 12px; } }
+  .steplog { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .steplog li { border-left: 2px solid var(--line2); padding: 2px 0 2px 12px; line-height: 1.45; overflow-wrap: anywhere; }
+  .steplog li.q { border-left-color: var(--accent); }
+  .steplog .when { display: block; font-size: 12px; color: var(--muted); }
+  .redoask { border: 1px solid var(--wait-line); background: var(--wait-bg); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+  .redoask ul { margin: 0; padding-left: 18px; color: var(--ink2); font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+  .redoask label { font-size: 13px; color: var(--muted); }
+  .redoask textarea { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+  .gate .q { font-size: 16px; line-height: 1.35; }
+  /* Skills */
+  .skillgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+  .skillcard { display: flex; flex-direction: column; gap: 10px; height: 100%; box-sizing: border-box; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; color: var(--ink); text-decoration: none; }
+  .skillcard:hover { border-color: var(--line2); }
+  .skillcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .skillcard .top, .khead { display: flex; align-items: center; gap: 12px; }
+  .kicon { flex: none; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--panel2); border: 1px solid var(--line2); display: grid; place-items: center; color: var(--ink2); }
+  .khead .kicon { width: 56px; height: 56px; }
+  .skillcard strong { font-size: 16px; }
+  .skillcard p, .khead p { margin: 0; color: var(--ink2); font-size: 14px; line-height: 1.5; }
+  .skillcard .foot { margin-top: auto; font-size: 12px; color: var(--muted); }
+  .kpanel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .kpanel h3 { margin: 0; font-size: 15px; }
+  .kph { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .kflow { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 4px; align-items: center; }
+  .kflow li { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink2); }
+  .kflow li + li::before { content: '→'; color: var(--muted); margin-right: 4px; }
+  .kflow .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line2); font-size: 11px; font-weight: 700; color: var(--ink); margin-right: 4px; }
+  .kflow .st { border: 1px solid var(--line); background: var(--panel2); border-radius: 999px; padding: 4px 10px 4px 4px; display: inline-flex; align-items: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ksecs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .ksecs > li { border-bottom: 1px solid var(--line); }
+  .ksecs > li > button { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 4px; cursor: pointer; font-size: 15px; }
+  .ksecs > li > button:hover { color: var(--accent); }
+  .ksecs > li > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+  .ksecs .chev { margin-left: auto; color: var(--muted); font-size: 18px; transition: transform .15s; }
+  .ksecs > li.open .chev { transform: rotate(90deg); }
+  .kbody { padding: 0 4px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .kbody .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .kbody textarea, #kMd { width: 100%; box-sizing: border-box; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; line-height: 1.55; color: var(--ink); background: var(--bg); border: 1px solid var(--line2); border-radius: 8px; padding: 10px 12px; resize: vertical; }
+  .kbody textarea { min-height: 260px; }
+  #kMd { min-height: 420px; }
+  details.kpanel > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.kpanel > summary::before { content: '›'; color: var(--muted); font-size: 18px; transition: transform .15s; }
+  details.kpanel[open] > summary::before { transform: rotate(90deg); }
+  details.kpanel .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .md { font-size: 14px; line-height: 1.6; color: var(--ink2); overflow-wrap: anywhere; }
+  .md p, .md ul, .md ol { margin: 0 0 10px; }
+  .md ul, .md ol { padding-left: 20px; }
+  .md li { margin: 2px 0; }
+  .md h4, .md h5 { margin: 14px 0 6px; font-size: 14px; color: var(--ink); }
+  .md strong { color: var(--ink); }
+  .md code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+  .md pre { margin: 0 0 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  .md .tw { overflow-x: auto; margin: 0 0 10px; }
+  .md table { border-collapse: collapse; font-size: 13px; }
+  .md th, .md td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .md th { color: var(--ink); background: var(--panel2); }
+  /* Characters */
+  .chargrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 14px; }
+  .charcard { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: var(--ink); text-decoration: none; }
+  .charcard:hover { border-color: var(--line2); }
+  .charcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .charcard .ph { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--tile); display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+  .charcard .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .charcard .nm { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .charcard .nm strong { font-size: 15px; overflow-wrap: anywhere; }
+  .pill.role-main { background: var(--accent-soft); color: var(--wait-ink); border-color: var(--accent); }
+  .charform, .charedit { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .charform h3, .charedit h3 { margin: 0; font-size: 15px; }
+  .charform label { display: flex; flex-direction: column; gap: 6px; }
+  .charform .cf-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .charform .cf-row label { flex: 1 1 220px; }
+  select { font: inherit; padding: 11px 12px; border: 1px solid var(--line2); border-radius: 10px; background: var(--panel); color: var(--ink); min-height: 46px; }
+  .charedit textarea { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; line-height: 1.55; min-height: 320px; background: var(--bg); }
+  .charform .acts, .charedit .acts, .photos .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .photos { display: flex; flex-direction: column; gap: 10px; }
+  .photostrip { display: flex; flex-wrap: wrap; gap: 10px; }
+  .photo { position: relative; width: 132px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
+  .photo a { display: block; width: 132px; height: 132px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line2); background: var(--tile); }
+  .photo.main a { border: 2px solid var(--accent); }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload { position: relative; overflow: hidden; }
+  .upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .adopt { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; justify-content: space-between; background: var(--panel); border: 1px dashed var(--line2); border-radius: 14px; padding: 14px 16px; }
+  .adopt > div:first-child { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .adopt.ask { border-style: solid; border-color: var(--accent); }
+  .adopt .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .group { list-style: none; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; padding: 10px 2px 0; }
+  .stepline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--ink2); }
+  .stepline .bar { flex: 1 1 160px; max-width: 260px; }
+  .stepline b { color: var(--ink); font-weight: 600; }
+  .stepline .stepnote { flex-basis: 100%; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* A run's page */
+  .detail { display: flex; flex-direction: column; gap: 18px; }
+  .detail .back { color: var(--muted); text-decoration: none; font-size: 14px; width: fit-content; }
+  .detail .back:hover { color: var(--ink); }
+  .dhead { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; }
+  .dhead .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stepper { list-style: none; margin: 0; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 14px; }
+  .stepper > li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); min-width: 0; }
+  .stepper .mk { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line2); display: grid; place-items: center; font-size: 12px; font-weight: 700; margin-top: 1px; }
+  .stepper .done { color: var(--ink2); }
+  .stepper .done .mk { background: var(--line2); border-color: var(--line2); color: var(--ink); }
+  .stepper .now { color: var(--ink); }
+  .stepper .now > button .lbl { font-weight: 600; }
+  .steppanel { color: var(--ink); font-weight: 400; }
+  .stepper .now .mk { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .stepper small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .convo-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .convo-wrap h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .convo { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; max-height: 60vh; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+  .bub { max-width: 78%; padding: 10px 14px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; }
+  .bub.them { align-self: flex-start; background: var(--panel2); border: 1px solid var(--line2); border-bottom-left-radius: 4px; }
+  .bub.me { align-self: flex-end; background: var(--accent-soft); border: 1px solid var(--accent); border-bottom-right-radius: 4px; }
+  .bub.result { border-color: var(--muted); font-weight: 600; }
+  .bub .who { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .bub.me .who { color: var(--wait-ink); }
+  .tools { align-self: flex-start; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: var(--muted); padding: 0 4px; overflow-wrap: anywhere; }
+  .say { display: flex; gap: 10px; align-items: flex-end; }
+  .say textarea { flex: 1; min-height: 46px; }
+  .log { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; max-height: 360px; overflow: auto; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+  .log .tool { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .log .you { color: var(--accent); font-weight: 600; }
+  .log .text { white-space: pre-wrap; }
+  .imgs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .imgs a img { height: 140px; max-width: 100%; border-radius: 8px; border: 1px solid var(--line2); object-fit: contain; background: var(--tile); }
+  .imgs .vid { position: relative; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; }
+  .imgs .vid video { display: block; height: 140px; max-width: 100%; border-radius: 8px; border: 1px solid var(--line2); object-fit: contain; background: var(--tile); pointer-events: none; }
+  .imgs .vid .play { position: absolute; inset: 0; margin: auto; width: 46px; height: 46px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 17px; padding-left: 3px; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+  .imgs .vid:hover .play, .imgs .vid:focus-visible .play { transform: scale(1.08); }
+  dialog.player { border: 1px solid var(--line2); padding: 0; background: #000; border-radius: 14px; max-width: min(96vw, 1200px); }
+  dialog.player::backdrop { background: rgba(5,6,8,.82); }
+  dialog.player video { display: block; max-width: min(96vw, 1200px); max-height: 86vh; }
+  dialog.player .close { position: absolute; top: 8px; right: 8px; z-index: 1; }
+  dialog.viewer { border: 1px solid var(--line2); padding: 0; background: #000; border-radius: 14px; max-width: 96vw; max-height: 92vh; overflow: auto; }
+  dialog.viewer::backdrop { background: rgba(5,6,8,.88); }
+  dialog.viewer img { display: block; margin: 0 auto; min-width: 240px; max-width: 96vw; max-height: calc(92vh - 52px); object-fit: contain; cursor: zoom-in; }
+  dialog.viewer.full img { max-width: none; max-height: none; cursor: zoom-out; }
+  dialog.viewer .vbar { position: sticky; top: 0; left: 0; z-index: 1; display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 8px; background: #000; }
+  dialog.viewer .vcount { color: #fff; font-size: 13px; margin-right: auto; padding-left: 4px; }
+  .answer { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  textarea { font: inherit; padding: 10px 12px; border: 1px solid var(--line2); border-radius: 10px; background: var(--bg); color: var(--ink); resize: vertical; min-height: 44px; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  @media (prefers-reduced-motion: no-preference) { .btn, .pipe, .imgs .vid .play { transition: background .15s, border-color .15s, transform .15s; } }
+  @media (max-width: 640px) { main { padding: 22px 16px 48px; } .compose { padding-top: 2vh; } }
+  /* Narrow windows: the sidebar becomes a short bar above the page (after the base rules so it wins). */
+  @media (max-width: 780px) { nav.side { max-width: none; flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; gap: 12px; } .navlist { flex-direction: row; flex-wrap: wrap; } .sidefoot { display: none; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side" aria-label="Studio">
+    <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="logo" aria-hidden="true" focusable="false"><defs><clipPath id="vs-tile"><rect x="4" y="4" width="56" height="56" rx="15"/></clipPath><clipPath id="vs-orig"><polygon points="0,0 64,0 0,64"/></clipPath><clipPath id="vs-conv"><polygon points="64,0 64,64 0,64"/></clipPath></defs><polygon points="64,0 64,64 0,64" fill="#C6F432" clip-path="url(#vs-tile)"/><rect x="5.75" y="5.75" width="52.5" height="52.5" rx="13.25" fill="none" stroke="#C6F432" stroke-width="3.5"/><g stroke-linejoin="round" stroke-width="3"><polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#C6F432" stroke="#C6F432" clip-path="url(#vs-orig)"/><polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#0E0F11" stroke="#0E0F11" clip-path="url(#vs-conv)"/></g></svg>Video Studio</div>
+    <div class="navlist">
+      <a href="#new" class="on">Studio</a>
+      <a href="#progress">In progress <span class="count" id="navCount" hidden>0</span></a>
+      <a href="#characters">Characters</a>
+      <a href="#skills">Skills</a>
+    </div>
+    <div class="sidefoot">
+      <div id="serverLine"><span class="dot" aria-hidden="true"></span>Server on · localhost:4420</div>
+      <div id="updated">Loading…</div>
+      <div id="slots">Runs: 0 of 2</div>
+      <div id="spendSide">Credits today: 0</div>
+      <div>Sessions run on your Claude Code subscription.</div>
+    </div>
+  </nav>
+
+  <main>
+    <div>
+      <h1 id="pageTitle" tabindex="-1">Studio</h1>
+      <div class="sub" id="summary">Loading…</div>
+    </div>
+
+    <section class="compose" id="new" aria-labelledby="new-h">
+      <h2 id="new-h" class="hero">What are we <em>making</em> today?</h2>
+      <form class="composer" id="startForm">
+        <label for="input" id="inputLabel">Idea</label>
+        <input type="text" id="input" autocomplete="off" placeholder="A 15-second clip of a cat DJing on a neon rooftop">
+        <div class="bar2">
+          <div class="pipes" role="radiogroup" aria-label="Pipeline">
+            <button type="button" class="pipe" role="radio" aria-checked="true" data-p="video"><span class="ic" aria-hidden="true">✦</span><span><b>Original video</b> <span class="mono">/video</span></span></button>
+          </div>
+          <button class="btn primary" type="submit" id="startBtn">Start session</button>
+        </div>
+      </form>
+      <div class="msg" id="startMsg" aria-live="polite"></div>
+      <div class="sub" id="modeHint">It runs here in the app, up to 2 at a time (more wait in a queue). It stops at every approval and asks you on In progress, with a notification. Paid jobs are blocked until you approve their price.</div>
+    </section>
+
+    <section id="progress" aria-labelledby="progress-h" style="display: flex; flex-direction: column; gap: 12px">
+      <h2 id="progress-h">In progress</h2>
+      <!-- One card per video being made (a swap or an original), whatever sessions work on it. Waiting on you: lime, first. -->
+      <div id="listView" style="display: flex; flex-direction: column; gap: 12px">
+        <ul class="videos" id="videoList" aria-label="Videos in progress"></ul>
+      </div>
+      <!-- One video's page (#progress/<key>): its steps, what it's asking, its sessions and the conversation. -->
+      <div id="runDetail" class="detail" hidden>
+        <a href="#progress" class="back">← In progress</a>
+        <div id="dHead"></div>
+        <div id="dSteps"></div>
+        <ul class="gates" id="dGates" aria-label="Needs your answer"></ul>
+        <div id="dSessions" class="dsessions"></div>
+        <div class="convo-wrap" id="convoWrap">
+          <h3 id="convoH">Conversation</h3>
+          <div class="convo" id="dConvo" tabindex="0" aria-label="Conversation" aria-live="polite">Loading…</div>
+          <form class="say" id="sayForm">
+            <label for="sayText" class="sr">Message</label>
+            <textarea id="sayText" rows="2" placeholder="Message this run…"></textarea>
+            <button class="btn primary" type="submit" id="sayBtn">Send</button>
+          </form>
+          <div class="why" id="sayHint" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+    <section id="characters" aria-labelledby="chars-h" style="display: flex; flex-direction: column; gap: 16px">
+      <h2 id="chars-h">Characters</h2>
+      <!-- The cast: characters/<name>/ (character.md, photos, kit). The skills read the same files. -->
+      <div id="charList" style="display: flex; flex-direction: column; gap: 16px">
+        <div><button class="btn primary" type="button" id="newCharBtn">+ New character</button></div>
+        <form id="newCharForm" class="charform" hidden>
+          <h3>New character</h3>
+          <div class="cf-row">
+            <label>Name<input type="text" id="ncName" maxlength="60" placeholder="Pizza cat"></label>
+            <label>Role<select id="ncRole"><option value="bench">Bench (available, no skill yet)</option><option value="main">Main (its own skill)</option><option value="unassigned">Unassigned (ask before using)</option></select></label>
+          </div>
+          <label>What it looks like (goes in every prompt)<textarea id="ncLook" rows="2" maxlength="600" placeholder="Orange tabby, short coat, green eyes, white paws"></textarea></label>
+          <label>Signature accessory<input type="text" id="ncAcc" maxlength="300" placeholder="A pizza-slice hat (or leave empty)"></label>
+          <label>Notes<textarea id="ncNotes" rows="2" maxlength="1000" placeholder="Who it is, its voice, what it may never become"></textarea></label>
+          <div class="acts"><button class="btn primary" type="submit" id="ncCreate">Create character</button><button class="btn" type="button" id="ncCancel">Cancel</button></div>
+          <div class="why" id="ncMsg" aria-live="polite"></div>
+        </form>
+        <ul class="chargrid" id="charGrid" aria-label="Characters"></ul>
+      </div>
+      <div id="charDetail" class="detail" hidden>
+        <a href="#characters" class="back">← Characters</a>
+        <div id="cHead"></div>
+        <div id="cSkill"></div>
+        <div id="cPhotos"></div>
+        <div class="charedit">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><h3>Character card <span class="mono">character.md</span></h3><span class="why" id="cSaved" aria-live="polite"></span></div>
+          <label for="cMd" class="sr">character.md</label>
+          <textarea id="cMd" spellcheck="false" rows="18"></textarea>
+          <div class="acts"><button class="btn primary" type="button" id="cSave">Save</button><button class="btn" type="button" id="cRevert">Undo changes</button></div>
+        </div>
+      </div>
+    </section>
+    <section id="skills" aria-labelledby="skills-h" style="display: flex; flex-direction: column; gap: 16px">
+      <h2 id="skills-h" class="sr">Skills</h2>
+      <!-- The skills the Studio starts: .claude/skills/<name>/SKILL.md, read and edited in place. -->
+      <div id="skillList" style="display: flex; flex-direction: column; gap: 12px">
+        <div class="sub">What each skill does, step by step. Edit one to change how its next sessions work; a session already running keeps what it read.</div>
+        <ul class="skillgrid" id="skillGrid" aria-label="Skills"></ul>
+      </div>
+      <div id="skillDetail" class="detail" hidden>
+        <a href="#skills" class="back">← Skills</a>
+        <div id="kHead"></div>
+        <div id="kFlow"></div>
+        <div class="kpanel">
+          <div class="kph"><h3>How it works</h3><span class="why" id="kMsg" aria-live="polite"></span></div>
+          <div class="sub">Each part of the skill's instructions. Open one to read it; Edit changes just that part.</div>
+          <ol class="ksecs" id="kSecs"></ol>
+        </div>
+        <details class="kpanel" id="kWhole">
+          <summary><h3>Edit the whole file <span class="mono" id="kPath"></span></h3></summary>
+          <label for="kMd" class="sr">SKILL.md</label>
+          <textarea id="kMd" spellcheck="false" rows="24"></textarea>
+          <div class="acts"><button class="btn primary" type="button" id="kSave">Save</button><button class="btn" type="button" id="kRevert">Undo changes</button><span class="why" id="kSaved" aria-live="polite"></span></div>
+        </details>
+      </div>
+    </section>
+  </main>
+  <dialog id="player" class="player" aria-label="Video"><button type="button" class="btn sm close" data-close-player>Close</button><video controls playsinline></video></dialog>
+  <dialog id="viewer" class="viewer" aria-label="Picture"><div class="vbar"><span class="vcount" id="vCount"></span><button type="button" class="btn sm" id="vPrev" aria-label="Previous picture">‹</button><button type="button" class="btn sm" id="vNext" aria-label="Next picture">›</button><button type="button" class="btn sm" id="vClose">Close</button></div><img alt="" id="vImg" title="Click for full size"></dialog>
+</div>
+
+<script>
+(function () {
+  // Set by the Video Studio app (it reads video-library/.studio-token); a plain browser tab has none and is read-only.
+  var TOKEN = window.__studioToken || document.querySelector('meta[name="studio-token"]').content;
+  var pipeline = 'video', drafts = {}, shownDetail = null;
+  // Re-render only what changed, so the 5 s refresh keeps text selection, focus, scroll and images steady.
+  // "N min ago" lives in <span class="ago">, updated in place: a passing minute must not rebuild the lists.
+  var AGO = /<span class="ago" data-at="[^"]*">[^<]*<\/span>/g;
+  function agoSpan(iso) { return '<span class="ago" data-at="' + esc(iso || '') + '">' + esc(ago(iso)) + '</span>'; }
+  function setHtml(el, html) {
+    var key = html.replace(AGO, '');
+    if (el.__html !== key) { el.innerHTML = html; el.__html = key; }
+    else el.querySelectorAll('.ago').forEach(function (a) { a.textContent = ago(a.dataset.at); });
+  }
+  var labels = { video: ['Idea', 'A 15-second clip of a cat DJing on a neon rooftop'] };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function ago(iso) {
+    if (!iso) return '';
+    var m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago';
+  }
+  function post(path, body) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Token': TOKEN }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) {
+        if (r.status === 403 && !TOKEN) throw new Error('Approvals and starts work in the Video Studio app (this browser tab is read-only).');
+        if (!r.ok) throw new Error(j.error || 'Something went wrong'); return j; }); });
+  }
+
+  // A radio group: one tab stop, arrow keys move the choice. Character skills add their own buttons (renderStarts).
+  function allPipes() { return [].slice.call(document.querySelectorAll('.pipe')); }
+  function choosePipe(b, quiet) {
+    pipeline = b.dataset.p;
+    allPipes().forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); x.tabIndex = x === b ? 0 : -1; });
+    var lb = labels[pipeline] || ['Link or file', 'https://… or ~/Downloads/clip.mp4'];
+    $('inputLabel').textContent = lb[0]; $('input').placeholder = lb[1]; if (!quiet) $('input').focus();
+  }
+  allPipes().forEach(function (x) { x.tabIndex = x.getAttribute('aria-checked') === 'true' ? 0 : -1; });
+  document.querySelector('.pipes').addEventListener('click', function (e) { var b = e.target.closest('.pipe'); if (b) choosePipe(b); });
+  document.querySelector('.pipes').addEventListener('keydown', function (e) {
+    var d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key], b = e.target.closest('.pipe'); if (!d || !b) return;
+    e.preventDefault(); var ps = allPipes(), n = ps[(ps.indexOf(b) + d + ps.length) % ps.length]; choosePipe(n); n.focus();
+  });
+  var startsKey = null;
+  function renderStarts(starts) {
+    var key = JSON.stringify(starts || []); if (key === startsKey) return; startsKey = key;
+    [].slice.call(document.querySelectorAll('.pipe[data-skill]')).forEach(function (x) { if (x.getAttribute('aria-checked') === 'true') choosePipe(document.querySelector('.pipe[data-p=video]'), true); x.remove(); });
+    var box = document.querySelector('.pipes');
+    (starts || []).forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'pipe'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', 'false'); b.tabIndex = -1;
+      b.dataset.p = k.id; b.dataset.skill = '1'; if (k.target) b.title = 'Turns ' + k.target + ' into ' + k.label;
+      b.innerHTML = (k.photo ? '<img src="' + esc(k.photo) + '" alt="" width="28" height="28">' : '<span class="ic" aria-hidden="true">✦</span>') + '<span><b>' + esc(k.label) + '</b> <span class="mono">/' + esc(k.id) + '</span></span>';
+      box.appendChild(b);
+    });
+  }
+
+  $('startForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = $('input').value.trim(), msg = $('startMsg');
+    if (!input) { msg.className = 'msg err'; msg.textContent = pipeline === 'video' ? 'Describe the video first.' : 'Paste a link or file path first.'; return; }
+    $('startBtn').disabled = true; msg.className = 'msg'; msg.textContent = 'Starting…';
+    post('/api/studio/start', { pipeline: pipeline, input: input, mode: 'background' })
+      .then(function (j) { msg.innerHTML = esc(j.status === 'queued' ? 'Queued: it starts when a slot frees up.' : 'Started.') + ' <a href="#progress">Follow it under In progress →</a>'; $('input').value = ''; load(); })
+      .catch(function (err) { msg.className = 'msg err'; msg.textContent = err.message; })
+      .then(function () { $('startBtn').disabled = false; });
+  });
+
+  function act(path, body, el, done) {
+    if (el) el.disabled = true;
+    // Re-enable on success too: a call that changes nothing on screen keeps the same button.
+    post(path, body).then(function (j) { if (done) done(j); if (el) el.disabled = false; load(); })
+      .catch(function (err) { showErr(el, err); if (el) el.disabled = false; });
+  }
+  // An action's error shows beside the button you clicked (not at the top of the page).
+  function showErr(el, err) {
+    var text = /Load failed|Failed to fetch|NetworkError/i.test(err.message) ? 'The Studio server is not answering; try again in a moment.' : err.message;
+    if (!el || !el.parentNode) return alertBox(text);
+    var box = el.parentNode.querySelector('.act-err') || el.parentNode.appendChild(Object.assign(document.createElement('div'), { className: 'act-err', role: 'alert' }));
+    box.setAttribute('role', 'alert'); box.textContent = text;
+  }
+  function alertBox(text) { var m = $('startMsg'); m.className = 'msg err'; m.textContent = text; m.scrollIntoView({ block: 'center' }); }
+
+  // One question a session is waiting on: what it asks, its pictures or videos, and your answer box.
+  // A question's options (single pick). Open: the cards are a radio group, the recommended one picked until you
+  // click another, and Approve names your pick and its price. Answered: every option stays, yours ticked.
+  var optSel = {};   // gate id → the option you clicked
+  function pickOf(g) {
+    var o = g.options || []; if (!o.length) return null;
+    var id = optSel[g.id] !== undefined ? optSel[g.id] : (o.filter(function (x) { return x.recommended; })[0] || {}).id;
+    return o.filter(function (x) { return x.id === id; })[0] || null;
+  }
+  function optionsHtml(g, open) {
+    var o = g.options || []; if (!o.length) return '';
+    var sel = open ? pickOf(g) : null, picked = !open && g.answer === 'approved' ? g.choice : null;
+    return '<div class="opts"' + (open ? ' role="radiogroup" aria-label="Options"' : ' aria-label="Options offered"') + '>' + o.map(function (x) {
+      var on = open ? !!(sel && sel.id === x.id) : picked === x.id;
+      var u = x.image ? '/api/studio/file?path=' + encodeURIComponent(x.image) : null, vid = u && /\.(mp4|mov|m4v|webm)$/i.test(x.image);
+      var pic = !u ? '' : vid ? '<button type="button" class="ophoto" data-play="' + esc(u) + '" aria-label="Play option ' + esc(x.id) + '"><video muted playsinline preload="metadata" src="' + esc(u) + '#t=0.1"></video><span class="play" aria-hidden="true">▶</span></button>'
+        : '<a class="ophoto zoom" href="' + esc(u) + '" target="_blank" rel="noopener" aria-label="Open the picture for option ' + esc(x.id) + '"><img alt="" src="' + esc(u) + '"></a>';
+      var body = '<span class="otop"><span class="oid">' + esc(x.id) + '</span><b>' + esc(x.label) + '</b></span>' +
+        '<span class="otags">' + (x.recommended ? '<span class="pill rec">Recommended</span>' : '') + (x.credits ? '<span class="pill">' + esc(x.credits) + ' cr</span>' : '') +
+        (picked && on ? '<span class="pill ok">✓ You picked</span>' : '') + '</span>' + (x.why ? '<span class="owhy">' + esc(x.why) + '</span>' : '');
+      return '<div class="opt' + (on ? ' sel' : '') + (picked && !on ? ' dim' : '') + '">' + pic +
+        (open ? '<button type="button" class="obody" role="radio" aria-checked="' + on + '" data-opt="' + esc(g.id) + '" data-optid="' + esc(x.id) + '">' + body + '</button>' : '<div class="obody">' + body + '</div>') + '</div>';
+    }).join('') + '</div>';
+  }
+  function gateHtml(g, runsById) {
+    var run = g.runId && runsById[g.runId];
+    var imgs = mediaHtml(g.images || []);
+    // Background runs, and chat sessions that are listening (`studio-gate.sh wait`), take the answer from here.
+    // An older chat session that isn't listening can only be answered in its own chat.
+    var busy = run && run.status === 'running';
+    // Every question takes an answer here. A chat session started outside the app (not listening) is moved into the
+    // app when you answer, with your answer; one that is waiting in its own window gets it through `studio-gate.sh wait`.
+    var outside = !run && !g.listening;
+    var opts = g.options && g.options.length, pick = pickOf(g), cr = pick && pick.credits != null ? pick.credits : g.credits;
+    var answer = '<div class="answer"><label for="n-' + esc(g.id) + '">' + (opts ? 'Notes (optional; for none of these or a mix, write it and Send notes)' : 'Notes (optional for Approve)') + '</label><textarea id="n-' + esc(g.id) + '" data-draft="' + esc(g.id) + '" rows="2" placeholder="' + (opts ? 'Anything to add, or what you want instead' : 'What to change, or leave empty to approve') + '">' + esc(drafts[g.id] || '') + '</textarea>' +
+      '<div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn dark" type="button" data-approve="' + esc(g.id) + '"' + (pick ? ' data-choice="' + esc(pick.id) + '"' : '') + (busy || (opts && !pick) ? ' disabled' : '') + '>' +
+      (opts ? (pick ? 'Approve ' + esc(pick.id) + ' · ' + esc(pick.label) : 'Pick an option') : 'Approve') + (cr && (!opts || pick) ? ' · ' + esc(cr) + ' cr' : '') + '</button>' +
+      '<button class="btn" type="button" data-notes="' + esc(g.id) + '"' + (busy ? ' disabled' : '') + '>Send notes</button></div>' +
+      (busy ? '<div class="why">The run is still finishing its turn; you can answer in a moment.</div>' : '') +
+      (outside ? '<div class="why">This conversation started in a chat window outside the app. Answering moves it into the app, so stop using that old window after.</div>' : '') + '</div>';
+    return '<li class="gate"><div class="what"><strong class="q">' + esc(g.title) + '</strong>' +
+      '<div class="sub">' + (g.credits ? '<span class="pill wait">' + esc(g.credits) + ' credits</span> ' : '') + 'Asked ' + agoSpan(g.at) + '</div>' +
+      (g.detail ? '<div style="font-size:14px;color:var(--ink2);white-space:pre-wrap">' + esc(g.detail) + '</div>' : '') +
+      (imgs ? '<div class="imgs">' + imgs + '</div>' : '') + optionsHtml(g, true) + '</div>' + answer + '</li>';
+  }
+
+  // "Step 4 of 11 · Test approved" with a small bar.
+  function stepLine(x) {
+    if (!x.steps || !x.steps.length || !x.step) return '';
+    var keys = x.steps.map(function (s) { return s.key; }), i = keys.indexOf(x.step);
+    var label = i >= 0 ? x.steps[i].label : x.step, n = x.steps.length, bar = '';
+    for (var k = 0; k < n; k++) bar += '<span class="' + (k <= i ? 'on' : '') + '"></span>';
+    return '<div class="stepline">' + (i >= 0 ? 'Step ' + (i + 1) + ' of ' + n + ' · ' : 'Step · ') + '<b>' + esc(label) + '</b>' +
+      '<div class="bar" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))" role="img" aria-label="Step ' + (i + 1) + ' of ' + n + '">' + bar + '</div>' +
+      (x.stepNote ? '<span class="stepnote">' + esc(x.stepNote) + '</span>' : '') + '</div>';
+  }
+  // A session (background run or chat session) working on a video.
+  function statusOf(x) {
+    if (x.kind === 'chat') return x.status === 'waiting' ? ['wait', 'Waiting for you'] : ['', 'Chat session'];
+    var label = { running: 'Running', queued: x.hasPending ? 'Queued · resuming' : 'Queued', waiting: 'Waiting for you', finished: 'Finished', failed: 'Failed', stopped: 'Stopped', interrupted: 'Interrupted' }[x.status] || x.status;
+    return [x.status === 'waiting' ? 'wait' : x.status === 'finished' ? 'ok' : 'run-' + x.status, label];
+  }
+  function videoStatus(v) {
+    return { waiting: ['wait', 'Needs your answer'], running: ['run-running', 'Working'], queued: ['', 'Queued'], finished: ['ok', 'Finished'],
+      failed: ['run-failed', 'Failed'], stopped: ['', 'Stopped'], interrupted: ['run-interrupted', 'Interrupted'] }[v.status] || ['', 'Idle'];
+  }
+  function sessionWhat(x) {
+    if (x.kind === 'chat') return 'Chat session · updated ' + agoSpan(x.updatedAt);
+    var now = x.status === 'running' ? (x.lastTool ? ' · now: ' + esc(x.lastTool) : ' · starting…') : '';
+    return 'Background run · started ' + agoSpan(x.createdAt) + ' · ' + (x.turns || 0) + ' turn' + (x.turns === 1 ? '' : 's') + now;
+  }
+  function sessionActs(x) {
+    if (x.kind !== 'run') return '';
+    var a = '';
+    if (x.status === 'running' || x.status === 'queued') a += '<button class="btn sm" type="button" data-stop="' + esc(x.id) + '">Stop</button>';
+    if (['interrupted', 'failed', 'stopped', 'finished'].indexOf(x.status) >= 0) a += '<button class="btn sm" type="button" data-resume="' + esc(x.id) + '">Resume</button>';
+    return a;
+  }
+  function videoMeta(v) {
+    return (v.subtitle ? esc(v.subtitle) + ' · ' : '') + (v.credits ? esc(v.credits) + ' cr spent · ' : '') +
+      (v.shots ? esc(v.shots) + ' shots · ' : '') + (v.take > 1 ? 'take ' + esc(v.take) + ' · ' : '') + 'updated ' + agoSpan(v.updatedAt) +
+      (v.project ? ' · <span class="mono">' + esc(v.project) + '</span>' : '');
+  }
+  // One card per video being made: its name, whether it needs your answer, and the step it is on. The whole card
+  // opens the video's page, where the question, your answer and its sessions are.
+  function videoCard(v) {
+    var st = videoStatus(v), waiting = !!v.gates.length;
+    return '<li class="vcard' + (waiting ? ' wait' : '') + '"><a class="vlink" href="#progress/' + esc(encodeURIComponent(v.key)) + '">' +
+      '<div class="top">' + (v.thumb ? '<img class="vthumb" alt="" loading="lazy" src="' + esc(v.thumb) + '">' : '') +
+      '<span class="vname"><strong>' + esc(v.title) + '</strong>' + (v.subtitle ? '<span class="vsub">' + esc(v.subtitle) + '</span>' : '') + '</span>' +
+      (waiting ? '<span class="pill wait">Needs your answer</span>' : st[1] !== 'Idle' ? '<span class="pill ' + st[0] + '">' + esc(st[1]) + '</span>' : '') + '</div>' +
+      (stepLine({ steps: v.steps, step: v.step }) || '<div class="stepline why">No step yet</div>') +
+      '<span class="chev" aria-hidden="true">›</span></a></li>';
+  }
+  // Pictures and videos (a gate's, or what a step made): a video shows its first frame and plays large when clicked.
+  function mediaHtml(list) {
+    return (list || []).map(function (f, i) {
+      var u = '/api/studio/file?path=' + encodeURIComponent(f), n = (i + 1) + ' of ' + list.length;
+      if (/\.(mp4|mov|m4v|webm)$/i.test(f)) return '<button type="button" class="vid" data-play="' + esc(u) + '" aria-label="Play video ' + n + '"><video muted playsinline preload="metadata" src="' + esc(u) + '#t=0.1"></video><span class="play" aria-hidden="true">▶</span></button>';
+      return '<a class="zoom" href="' + u + '" target="_blank" rel="noopener" aria-label="Open image ' + n + '"><img alt="Image ' + n + '" src="' + u + '"></a>';
+    }).join('');
+  }
+  // The video page's steps: one line with the bar, then every step as a button. Opening a step shows what it made;
+  // a finished step can start a new take ("Redo from this step"). Takes keep the steps before the redo as they are.
+  var stepSel = {}, redoAsk = null;   // video key → { key, take } of the open step; redoAsk = 'videoKey|stepKey'
+  function takeView(x, T) {
+    var keys = x.steps.map(function (s) { return s.key; }), hist = (x.history || []).filter(function (h) { return (h.take || 1) === T; });
+    var rec = (x.takes || []).filter(function (t) { return t.take === T; })[0], from = rec ? keys.indexOf(rec.from) : 0;
+    var cur = T === (x.take || 1) ? keys.indexOf(x.step) : hist.length ? keys.indexOf(hist[hist.length - 1].step) : from - 1;
+    var media = function (key) {   // a step reused from an earlier take shows that take's files
+      var reused = T > 1 && keys.indexOf(key) < from, top = reused ? T - 1 : T;
+      for (var t = top; t >= (reused ? 1 : T); t--) { var m = ((x.media || {})[t] || {})[key]; if (m && m.length) return { files: m, take: t }; }
+      return { files: [], take: top };
+    };
+    var when = function (key) { var h = hist.filter(function (y) { return y.step === key; }).pop(); return h || null; };
+    return { keys: keys, cur: cur, from: Math.max(0, from), media: media, when: when };
+  }
+  // The steps as one timeline (a rail of checks, the current step lit): each row says when it happened and what it
+  // reported, and opens in place to show the step's record, questions and files. The current step starts open.
+  function stepBox(x) {
+    if (!x.steps || !x.steps.length) return '';
+    var keys = x.steps.map(function (s) { return s.key; }), i = keys.indexOf(x.step), next = i >= 0 && i + 1 < x.steps.length ? x.steps[i + 1].label : '';
+    var takes = x.takes || [], current = x.take || 1, sel = stepSel[x.key] || {}, T = sel.take || current;
+    var tv = takeView(x, T), open = sel.key !== undefined ? sel.key : T === current ? x.step : null;
+    var takeBar = takes.length ? '<div class="takebar" role="group" aria-label="Takes">' + [1].concat(takes.map(function (t) { return t.take; })).map(function (n) {
+      return '<button type="button" class="chip' + (n === T ? ' on' : '') + '" aria-pressed="' + (n === T) + '" data-take="' + n + '">Take ' + n + (n === current ? ' · now' : '') + '</button>';
+    }).join('') + '</div>' : '';
+    var lis = x.steps.map(function (st, k) {
+      var cls = tv.cur < 0 ? '' : k < tv.cur ? 'done' : k === tv.cur ? 'now' : '', kept = T > 1 && k < tv.from && k <= tv.cur, isOpen = open === st.key;
+      var m = k <= tv.cur ? tv.media(st.key).files : [], h = tv.when(st.key), first = m.filter(function (f) { return /\.(png|jpe?g|gif|webp)$/i.test(f); })[0];
+      var qs = k <= tv.cur ? ((x.questions || {})[T] || {})[st.key] || [] : [], waiting = qs.some(function (q) { return !q.cleared; });
+      var notes = (x.history || []).filter(function (y) { return (y.take || 1) === T && y.step === st.key && y.note && !y.redo; });
+      var summary = kept ? 'Reused from take ' + (T - 1) : notes.length ? notes[notes.length - 1].note : qs.length ? qs[qs.length - 1].title : '';
+      var when = kept ? '' : h ? agoSpan(h.at) : k === tv.cur && T === current && x.stepAt ? agoSpan(x.stepAt) : '';
+      var meta = [when, qs.length ? qs.length + (qs.length === 1 ? ' question' : ' questions') : '', m.length ? m.length + (m.length === 1 ? ' file' : ' files') : ''].filter(Boolean).join(' · ');
+      var thumb = first ? '<img class="smini" alt="" src="/api/studio/file?path=' + esc(encodeURIComponent(first)) + '">' : m.length ? '<span class="smini vidmini" aria-hidden="true">▶</span>' : '';
+      return '<li class="' + cls + (isOpen ? ' sel' : '') + (kept ? ' kept' : '') + '"' + (k === tv.cur ? ' aria-current="step"' : '') + '><button type="button" data-stepsel="' + esc(st.key) + '" aria-expanded="' + isOpen + '">' +
+        '<span class="mk" aria-hidden="true">' + (cls === 'done' ? '✓' : k + 1) + '</span><span class="lbl">' + esc(st.label) +
+        (waiting ? ' <span class="pill wait">Needs your answer</span>' : '') + (summary ? '<small class="sum">' + esc(summary) + '</small>' : '') + '</span>' +
+        (meta ? '<span class="meta">' + meta + '</span>' : '') + thumb + '<span class="chev" aria-hidden="true">›</span></button>' +
+        (isOpen ? stepPanel(x, tv, T, st.key) : '') + '</li>';
+    }).join('');
+    return '<div class="stepbox">' + (stepLine({ steps: x.steps, step: x.step }) || '<div class="stepline why">No step reported yet</div>') +
+      (next ? '<div class="sub">Next: ' + esc(next) + '</div>' : '') + takeBar +
+      '<ol class="stepper" aria-label="Steps">' + lis + '</ol></div>';
+  }
+  // Each step's own conversation: what the session said while the video was at that step, and what you asked about
+  // it. A message sent from a step goes to the same session, tagged "[Step N · name]"; that message and the reply to
+  // it (up to the end of that turn) are filed under the step it is about, whenever they were said.
+  var convoCache = {}, stepHints = {}, stepGateIds = {}, curRunsById = {};   // + the open questions the open step shows, and the runs by id   // run id → its log events; 'video|step' → the last send's note
+  var STEP_TAG = /^\[Step \d+ · ([^\]]+)\]\s*/;
+  function stepAt(x, at) {
+    var hs = (x.history || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }), h = null;
+    hs.forEach(function (y) { if (at && y.at <= at) h = y; });
+    h = h || hs[0];
+    return h ? { step: h.step, take: h.take || 1 } : null;
+  }
+  function stepChatHtml(x, key, T) {
+    var ev = window.__selRun && convoCache[window.__selRun];
+    if (!ev) return '<div class="why">' + (window.__selRun ? 'Loading…' : 'Its messages show here once it runs in the app.') + '</div>';
+    var byLabel = {}; x.steps.forEach(function (s) { byLabel[s.label] = s.key; });
+    var ctx = null, out = [], tools = 0, last = null;
+    var flush = function () { if (tools) { out.push('<div class="tools">⚙ ' + tools + (tools === 1 ? ' action' : ' actions') + '</div>'); tools = 0; } };
+    ev.forEach(function (e) {
+      var tag = e.kind === 'you' ? STEP_TAG.exec(e.text || '') : null;
+      if (e.kind === 'you') ctx = tag && byLabel[tag[1]] ? { step: byLabel[tag[1]], take: x.take || 1 } : null;
+      var where = ctx || stepAt(x, e.at), mine = where && where.step === key && where.take === T;
+      if (e.kind === 'result') ctx = null;
+      if (!mine) return;
+      if (e.kind === 'tool') { tools++; return; }
+      flush();
+      if (e.kind === 'you') out.push(bubble('me', 'You', tag ? e.text.replace(STEP_TAG, '') : e.text, e.at));
+      else if (e.kind === 'result') { if (e.text !== last) out.push(bubble('them result', 'End of turn', e.text)); }   // not the same words twice
+      else out.push(bubble('them', 'Run', e.text, e.at));
+      last = e.kind === 'text' ? e.text : null;
+    });
+    flush();
+    if (!out.length) return '<div class="why">Nothing said at this step yet.</div>';
+    return (out.length > 40 ? '<div class="why">The earlier messages are in the full conversation below.</div>' : '') + out.slice(-40).join('');
+  }
+  function stepChatBox(x, T, key, k) {
+    var id = 'stepmsg:' + x.key + ':' + key, now = T === (x.take || 1) && key === x.step, hk = x.key + '|' + key;
+    var canSend = window.__selRun || window.__selChat;
+    var hint = stepHints[hk] || (!canSend ? 'It is waiting in its own chat window: answer its question below.'
+      : now ? 'It replies here. A message never approves anything or spends credits.'
+      : 'Ask about this step and it answers here. To change it, use Redo from this step.');
+    return '<div class="stepchat-wrap"><h4>Conversation at this step</h4>' +
+      '<div class="convo stepchat" id="stepChat" data-step="' + esc(key) + '" data-take="' + T + '" tabindex="0" aria-label="Conversation at ' + esc(x.steps[k].label) + '">' + stepChatHtml(x, key, T) + '</div>' +
+      (canSend ? '<div class="say"><label for="' + esc(id) + '" class="sr">Message about ' + esc(x.steps[k].label) + '</label><textarea id="' + esc(id) + '" data-draft="' + esc(id) + '" rows="2" placeholder="' + (now ? 'Message about this step…' : 'Ask about this step…') + '">' + esc(drafts[id] || '') + '</textarea>' +
+        '<button class="btn primary" type="button" data-stepsend="' + esc(key) + '">Send</button></div>' : '') +
+      '<div class="why">' + esc(hint) + '</div></div>';
+  }
+  function stepPanel(x, tv, T, key) {
+    var k = tv.keys.indexOf(key); if (k < 0) return '';
+    var st = x.steps[k], current = x.take || 1, reached = k <= tv.cur, m = tv.media(key), h = tv.when(key);
+    var meta = !reached ? 'Not reached yet' : T > 1 && k < tv.from ? 'Reused from take ' + m.take : k === tv.cur && T === current ? 'Current step' + (h || x.stepAt ? ' · since ' + agoSpan(h ? h.at : x.stepAt) : '') : h ? 'Done ' + agoSpan(h.at) : 'Done';
+    var canRedo = x.project && reached && k >= 1 && T === current;
+    var ask = redoAsk === x.key + '|' + key, n = current + 1, total = x.steps.length;
+    var html = '<div class="steppanel" role="region" aria-label="' + esc(st.label) + '"><div class="sphead"><strong class="sr">Step ' + (k + 1) + ' · ' + esc(st.label) + '</strong><span class="sub">' + meta + '</span>' +
+      (canRedo && !ask ? '<button class="btn sm" type="button" data-redo="' + esc(key) + '">Redo from this step</button>' : '') + '</div>';
+    // What happened at this step, oldest first: every note the session reported, then each question and its answer.
+    var notes = (x.history || []).filter(function (y) { return (y.take || 1) === T && y.step === key && y.note && !y.redo; });
+    var qs = reached ? ((x.questions || {})[T] || {})[key] || [] : [];
+    // A question still waiting is answered right here (the same card as below the steps, which then leaves it out).
+    var openGates = qs.filter(function (q) { return !q.cleared; }).map(function (q) { return (x.gates || []).filter(function (g) { return g.id === q.id; })[0]; }).filter(Boolean);
+    openGates.forEach(function (g) { stepGateIds[g.id] = 1; });
+    qs = qs.filter(function (q) { return q.cleared || !openGates.some(function (g) { return g.id === q.id; }); });
+    if (notes.length || qs.length) {
+      var ans = { approved: 'You approved', notes: 'You sent notes', message: 'Withdrawn by your message', moved: 'Moved into the app', redo: 'Replaced by a redo' };
+      html += '<ol class="steplog" aria-label="What happened">' + notes.map(function (y) {
+        return '<li><span class="when">' + agoSpan(y.at) + '</span>' + esc(y.note) + '</li>';
+      }).join('') + qs.map(function (q) {
+        var po = q.choice && (q.options || []).filter(function (o) { return o.id === q.choice; })[0];
+        var a = !q.cleared ? '<span class="pill wait">Waiting for you</span>' : '<span class="sub">' + esc(ans[q.answer] || 'Answered') + (po ? ' option ' + esc(po.id) + ' · ' + esc(po.label) : '') + (q.note ? ': “' + esc(q.note) + '”' : '') + '</span>';
+        return '<li class="q"><span class="when">' + agoSpan(q.at) + '</span><strong>' + esc(q.title) + '</strong>' + (q.credits ? ' <span class="sub">· ' + esc(q.credits) + ' cr</span>' : '') +
+          (q.detail ? '<div class="sub">' + esc(q.detail) + '</div>' : '') + optionsHtml(q, false) + '<div>' + a + '</div></li>';
+      }).join('') + '</ol>';
+    }
+    if (openGates.length) html += '<ul class="gates instep" aria-label="Needs your answer">' + openGates.map(function (g) { return gateHtml(g, curRunsById); }).join('') + '</ul>';
+    html += m.files.length ? '<div class="imgs">' + mediaHtml(m.files) + '</div>'
+      : '<div class="why">' + (reached ? 'No pictures or videos were saved for this step.' : 'Nothing here yet: what this step makes shows up here when the video gets to it.') + '</div>';
+    if (reached) html += stepChatBox(x, T, key, k);
+    if (ask) {
+      var id = 'redo:' + x.key + ':' + key;
+      html += '<div class="redoask" role="group" aria-label="Redo from ' + esc(st.label) + '"><strong>Start take ' + n + ' from “' + esc(st.label) + '”?</strong><ul>' +
+        '<li>' + (k === 1 ? 'Step 1 is' : 'Steps 1–' + k + ' are') + ' kept as they are.</li>' +
+        '<li>' + (k + 1 === total ? 'Step ' + total : 'Steps ' + (k + 1) + '–' + total) + ' run again as take ' + n + '. Take ' + current + '’s files stay where they are, so you can compare.</li>' +
+        '<li>Nothing is spent on its own: every paid step asks you the price first.</li></ul>' +
+        '<label for="' + esc(id) + '">Notes for this take (optional)</label><textarea id="' + esc(id) + '" data-draft="' + esc(id) + '" rows="2" placeholder="What to do differently">' + esc(drafts[id] || '') + '</textarea>' +
+        '<div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn dark" type="button" data-redo-go="' + esc(key) + '">Start take ' + n + '</button><button class="btn" type="button" data-redo-cancel="1">Cancel</button></div></div>';
+    }
+    return html + '</div>';
+  }
+  // A video's page (#progress/<key>; a run's id also finds its video). Header, steps, gates and sessions redraw with
+  // every refresh; the conversation only when it changed; the message box never (a half-written message stays).
+  var chosen = {};   // video key → the session whose conversation you are looking at
+  function findVideo(key, state) {
+    var vids = state.videos || [];
+    return vids.filter(function (v) { return v.key === key; })[0] ||
+      vids.filter(function (v) { return v.sessions.some(function (x) { return x.id === key; }); })[0];
+  }
+  function renderDetail(key, state, runsById) {
+    var v = findVideo(key, state);
+    if (!v) {
+      $('pageTitle').textContent = 'In progress';
+      setHtml($('dHead'), '<div class="empty">This video is no longer in progress: it is finished and filed in the <a href="/">Library</a>, or it was cleaned up.</div>');
+      setHtml($('dSteps'), ''); setHtml($('dGates'), ''); setHtml($('dSessions'), ''); $('convoWrap').hidden = true; return;
+    }
+    $('convoWrap').hidden = false;
+    if (key !== v.key && !chosen[v.key]) chosen[v.key] = key;          // opened from a run's id: show that run
+    var gated = v.gates.filter(function (g) { return g.runId; })[0];
+    var sel = v.sessions.filter(function (x) { return x.id === chosen[v.key]; })[0] ||
+      (gated && v.sessions.filter(function (x) { return x.id === gated.runId; })[0]) || v.sessions[0] || null;
+    $('pageTitle').textContent = v.title;
+    var listeningChat = sel && sel.kind === 'chat' && v.gates.some(function (g) { return !g.runId && g.listening; });
+    window.__selRun = sel && sel.kind === 'run' ? sel.id : null;
+    window.__selChat = sel && sel.kind === 'chat' && !listeningChat ? (v.project || v.key) : null;
+    var st = videoStatus(v);
+    // Header: a swap's original clip (plays here; the post opens in the browser) next to the latest frame, one status
+    // badge, one line of facts, and the session's buttons.
+    var og = v.original, ogTile = !og ? '' : '<figure class="dtile">' + (og.video
+      ? '<button type="button" class="ovid" data-play="' + esc(og.video) + '" aria-label="Play the original video"><video muted playsinline preload="metadata" src="' + esc(og.video) + '#t=0.5"></video><span class="play" aria-hidden="true">▶</span></button>'
+      : '<span class="ovid none">Not downloaded</span>') +
+      '<figcaption' + (og.byName ? ' title="Matched by its file name in originals/: this session left no notes saying which clip it used"' : '') + '>Original' + (og.byName ? ' (found by name)' : '') + (og.url ? ' · <a href="' + esc(og.url) + '" target="_blank" rel="noopener">post ↗</a>' : '') + '</figcaption></figure>';
+    var nowTile = v.thumb ? (og ? '<figure class="dtile"><img class="dthumb" alt="Latest frame" src="' + esc(v.thumb) + '"><figcaption>Latest</figcaption></figure>' : '<img class="dthumb" alt="Latest frame" src="' + esc(v.thumb) + '">') : '';
+    setHtml($('dHead'), '<div class="dhead">' + ogTile + nowTile +
+      '<div style="flex:1 1 260px;display:flex;flex-direction:column;gap:6px;min-width:0"><div><span class="pill ' + st[0] + '">' + esc(st[1]) + '</span></div>' +
+      '<div class="sub">' + videoMeta(v) + '</div></div>' + (sel && v.sessions.length === 1 ? '<div class="acts">' + sessionActs(sel) + '</div>' : '') + '</div>');
+    var active = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.draft;
+    // Anything half-written inside the steps (a redo note, a step message, notes on a question) stays put.
+    curRunsById = runsById;
+    if (!(active && document.activeElement.closest('#dSteps'))) { stepGateIds = {}; setHtml($('dSteps'), stepBox(v)); }
+    window.__selVideo = v;
+    if (!active) setHtml($('dGates'), v.gates.filter(function (g) { return !stepGateIds[g.id]; }).map(function (g) { return gateHtml(g, runsById); }).join(''));
+    // Only a video worked on by more than one session needs a switcher.
+    setHtml($('dSessions'), v.sessions.length > 1 ? '<h3>Sessions</h3><div class="chips" role="tablist" aria-label="Sessions">' + v.sessions.map(function (x) {
+      var ss = statusOf(x), on = sel && x.id === sel.id;
+      return '<button type="button" class="chip' + (on ? ' on' : '') + '" role="tab" aria-selected="' + on + '" data-session="' + esc(x.id) + '"><span class="pill ' + ss[0] + '">' + esc(ss[1]) + '</span>' +
+        '<span>' + (x.kind === 'chat' ? 'Chat session' : 'Run') + ' · ' + agoSpan(x.kind === 'chat' ? x.updatedAt : x.createdAt) + '</span></button>';
+    }).join('') + '</div>' + (sel ? '<div class="sess"><span>' + sessionWhat(sel) + '</span><span class="acts">' + sessionActs(sel) + '</span></div>' : '') : '');
+    // The message box: a background run takes messages; a chat session only reads your answers to its questions.
+    var form = $('sayForm'), hint = $('sayHint');
+    form.hidden = !window.__selRun && !window.__selChat;
+    if (!sel) { hint.textContent = 'No session yet: start one on the Studio page.'; $('dConvo').innerHTML = ''; return; }
+    if (sel.kind === 'run') {
+      var mine = v.gates.filter(function (g) { return g.runId === sel.id; });
+      hint.textContent = sel.status === 'running' ? 'It is working. A message you send now reaches it as soon as this turn ends.'
+        : mine.length ? 'A message withdraws the open question: it replies here, then asks again. To approve, use the buttons above.'
+        : 'It replies here. A message never approves anything or spends credits.';
+    } else {
+      hint.textContent = listeningChat ? 'It is waiting in its own chat window: answer its question above and your answer reaches it there.'
+        : 'It started in a chat window outside the app. Answering or sending a message moves it into the app (then stop using that old window).';
+    }
+    // A chat session's conversation is its questions and your answers: hidden until there is more than the open one.
+    $('convoWrap').hidden = false;
+    $('dConvo').hidden = sel.kind === 'chat' && !$('dConvo').querySelector('.bub.me'); $('convoH').hidden = $('dConvo').hidden;
+    var shown = v.key + '|' + sel.id;
+    if (shownDetail !== shown) { if (!shownDetail || shownDetail.split('|')[0] !== v.key) $('sayText').value = ''; shownDetail = shown; $('dConvo').innerHTML = 'Loading…'; $('dConvo').__html = null; }
+    loadConvo(sel, shown);
+  }
+  function bubble(cls, who, text, at) {
+    return '<div class="bub ' + cls + '"><span class="who">' + esc(who) + (at ? ' · ' + agoSpan(at) : '') + '</span>' + esc(text) + '</div>';
+  }
+  function loadConvo(item, shown) {
+    var url = item.kind === 'run' ? '/api/studio/log?run=' + encodeURIComponent(item.id) : '/api/studio/chat?project=' + encodeURIComponent(item.project);
+    fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      if (shownDetail !== shown) return;
+      var html = '';
+      if (item.kind === 'run') {
+        convoCache[item.id] = j.events || [];
+        var sc = $('stepChat'), sv = window.__selVideo;
+        if (sc && sv) { var near = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 40; setHtml(sc, stepChatHtml(sv, sc.dataset.step, +sc.dataset.take)); if (near) sc.scrollTop = sc.scrollHeight; }
+        var tools = [];
+        var flush = function () { if (tools.length) { html += '<div class="tools">⚙ ' + tools.length + ' step' + (tools.length === 1 ? '' : 's') + ' · ' + esc(tools[tools.length - 1]) + '</div>'; tools = []; } };
+        (j.events || []).forEach(function (e) {
+          if (e.kind === 'tool') { tools.push(e.text); return; }
+          flush();
+          if (e.kind === 'you') html += bubble('me', 'You', e.text, e.at);
+          else if (e.kind === 'result') html += bubble('them result', 'End of turn', e.text);
+          else html += bubble('them', 'Run', e.text);
+        });
+        flush();
+      } else {
+        (j.gates || []).forEach(function (g) {
+          var asked = [g.title, g.detail, g.credits ? g.credits + ' credits' : ''].filter(Boolean).join('\n');   // bubble() escapes it
+          html += bubble('them', 'Asked', asked, g.at);
+          if (g.answer === 'approved') html += bubble('me', 'You', 'Approved' + (g.note ? ': ' + g.note : ''), g.cleared);
+          else if (g.answer === 'notes') html += bubble('me', 'You', g.note, g.cleared);
+          else if (g.cleared) html += bubble('me', 'You', 'Answered in the chat', g.cleared);
+        });
+      }
+      var el = $('dConvo'), key = html.replace(AGO, '');
+      if (el.__html === key) return;
+      var atBottom = !el.__html || el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+      el.innerHTML = html || '<div class="why">Nothing said yet.</div>'; el.__html = key;
+      if (item.kind === 'chat') { el.hidden = !el.querySelector('.bub.me'); $('convoH').hidden = el.hidden; }
+      if (atBottom) el.scrollTop = el.scrollHeight;
+    }).catch(function () {});
+  }
+  $('sayForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = $('sayText').value.trim(), id = window.__selRun, chat = window.__selChat, hint = $('sayHint'), vk = shownDetail && shownDetail.split('|')[0];
+    if (!text) { hint.textContent = 'Write a message first.'; return; }
+    if (!id && !chat) return;
+    $('sayBtn').disabled = true;
+    post('/api/studio/message', id ? { run: id, text: text } : { project: chat, text: text })
+      .then(function (j) { $('sayText').value = ''; if (j.moved && vk) chosen[vk] = j.run; hint.textContent = j.moved ? 'Sent. It moved into the app and is picking it up.' : j.status === 'after-turn' ? 'Sent. It reaches the run when this turn ends.' : 'Sent. The run is picking it up.'; load(); })
+      .catch(function (err) { hint.textContent = err.message; })
+      .then(function () { $('sayBtn').disabled = false; });
+  });
+  // ⌘↩ / Ctrl↩ sends.
+  $('dSteps').addEventListener('keydown', function (e) {
+    var ta = e.target; if (!(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) || !ta.dataset || !/^stepmsg:/.test(ta.dataset.draft || '')) return;
+    e.preventDefault(); var b = ta.parentNode.querySelector('button[data-stepsend]'); if (b) b.click();
+  });
+  $('sayText').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); $('sayForm').requestSubmit(); } });
+
+  function render(state) {
+    var gates = state.gates || [], runs = state.runs || [], videos = state.videos || [], spend = state.spend || { today: 0, total: 0, jobs: 0 };
+    renderStarts(state.starts);
+    var runsById = {}; runs.forEach(function (r) { runsById[r.id] = r; });
+    var running = runs.filter(function (r) { return r.status === 'running'; }).length, queued = runs.filter(function (r) { return r.status === 'queued'; }).length;
+    $('summary').textContent = videos.length + ' in progress · ' + running + ' running · ' + queued + ' queued · ' + gates.length + ' waiting for you · credits today ' + spend.today + ' (all time ' + spend.total + ', ' + spend.jobs + ' jobs)';
+    $('navCount').hidden = !gates.length; $('navCount').textContent = gates.length;
+    $('slots').textContent = 'Runs: ' + running + ' of ' + (state.maxRuns || 2) + (queued ? ' · ' + queued + ' queued' : '');
+    $('spendSide').textContent = 'Credits today: ' + spend.today;
+    document.title = (gates.length ? '(' + gates.length + ') ' : '') + (window.__studioPage && window.__studioPage !== 'Studio' ? window.__studioPage + ' · ' : '') + 'Video Studio';
+
+    var detailKey = window.__runDetail || null;
+    $('listView').hidden = !!detailKey; $('runDetail').hidden = !detailKey; $('summary').hidden = !!detailKey;
+    if (detailKey) renderDetail(detailKey, state, runsById);
+    // The list holds the gates' notes boxes: while you type in one, or when a video's page is open, leave it alone.
+    var active = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.draft;
+    var f = document.activeElement, fKey = f && f.closest && f.closest('#videoList') && f.tagName === 'BUTTON' ? JSON.stringify(f.dataset) : null;
+    var list = $('videoList'), before = list.__html;
+    if (!active) setHtml(list, detailKey ? '' : videos.length ? videos.map(videoCard).join('')
+      : '<li class="empty">Nothing in progress. Start a video on the Studio page: it shows up here with its steps, and turns lime when it needs your answer. Finished videos are in the Library.</li>');
+    if (fKey && list.__html !== before) {
+      var again = [].slice.call(list.querySelectorAll('button')).filter(function (b) { return JSON.stringify(b.dataset) === fKey; })[0];
+      if (again) again.focus();
+    }
+    $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  // ── Characters page (#characters, #characters/<slug>) ──
+  var charMd = {};   // slug → the character.md as saved (to tell unsaved edits apart)
+  function charImg(slug, f, full) { return '/api/studio/character-file?slug=' + encodeURIComponent(slug) + '&f=' + encodeURIComponent(f) + (full ? '&full=1' : ''); }
+  function roleLabel(r) { return { main: 'Main', bench: 'Bench', 'ai-character': 'AI character', unassigned: 'Unassigned' }[r] || (r || 'No role'); }
+  function loadCharacters() {
+    var slug = window.__charDetail;
+    $('charList').hidden = !!slug; $('charDetail').hidden = !slug;
+    if (!slug) {
+      fetch('/api/studio/characters').then(function (r) { return r.json(); }).then(function (j) {
+        setHtml($('charGrid'), (j.characters || []).map(function (c) {
+          return '<li><a class="charcard" href="#characters/' + esc(encodeURIComponent(c.slug)) + '"><div class="ph">' + (c.photo ? '<img alt="" loading="lazy" src="' + esc(charImg(c.slug, c.photo)) + '">' : 'No photo yet') + '</div>' +
+            '<div class="nm"><strong>' + esc(c.name) + '</strong><span><span class="pill role-' + esc(c.role) + '">' + esc(roleLabel(c.role)) + '</span>' + (c.skill ? ' <span class="pill mono">/' + esc(c.skill.name) + '</span>' : '') + '</span></div></a></li>';
+        }).join('') || '<li class="empty">No characters yet.</li>');
+      }).catch(function () {});
+      return;
+    }
+    fetch('/api/studio/character?slug=' + encodeURIComponent(slug)).then(function (r) { return r.ok ? r.json() : null; }).then(function (c) {
+      if (window.__charDetail !== slug) return;
+      if (!c) { $('pageTitle').textContent = 'Characters'; setHtml($('cHead'), '<div class="empty">That character is not here.</div>'); setHtml($('cPhotos'), ''); return; }
+      $('pageTitle').textContent = c.name;
+      setHtml($('cHead'), '<div class="sub"><span class="pill role-' + esc(c.role) + '">' + esc(roleLabel(c.role)) + '</span> <span class="mono">characters/' + esc(c.slug) + '/</span></div>');
+      // Its skill, if it has one. Skills are made in a chat session when the owner asks, not here.
+      var k = c.skill;
+      setHtml($('cSkill'), k ? '<div class="charform"><h3>Skill <span class="mono">/' + esc(k.name) + '</span></h3><div class="sub">' + (k.target ? 'Turns ' + esc(k.target) + ' into ' + esc(c.name) + '. ' : '') + 'It is a start button on the Studio page.</div></div>'
+        : '<div class="why">No skill yet. To make one, ask Claude in a chat to make a skill for ' + esc(c.name) + '.</div>');
+      var photos = c.images.map(function (f) {
+        var main = f === c.source, grey = f === c.grey;
+        return '<div class="photo' + (main ? ' main' : '') + '"><a href="' + esc(charImg(c.slug, f, true)) + '" target="_blank" rel="noopener" aria-label="Open ' + esc(f) + '"><img alt="" loading="lazy" src="' + esc(charImg(c.slug, f)) + '"></a>' +
+          '<span class="fn" title="' + esc(f) + '">' + (main ? '<b style="color:var(--wait-ink)">Main photo</b>' : grey ? 'Grey cutout' : esc(f)) + '</span>' +
+          (main || grey ? '' : '<button class="btn sm" type="button" data-cmain="' + esc(f) + '">Use as main photo</button>') + '</div>';
+      }).join('');
+      var cut = c.cutting ? '<span class="why">Making the grey cutout…</span>'
+        : '<button class="btn sm" type="button" data-ccut="' + esc(c.slug) + '"' + (c.source ? '' : ' disabled') + '>' + (c.grey ? 'Remake grey cutout' : 'Make grey cutout') + '</button>';
+      setHtml($('cPhotos'), '<div class="photos"><h3 style="margin:0;font-size:15px">Photos</h3>' + (photos ? '<div class="photostrip">' + photos + '</div>' : '<div class="why">No photo yet. Add the one true reference photo: the skills copy its look.</div>') +
+        '<div class="acts"><label class="btn sm upload">Add a photo<input type="file" id="cUpload" accept="image/jpeg,image/png,image/webp"></label>' + cut +
+        (c.cutoutError ? '<span class="act-err">' + esc(c.cutoutError) + '</span>' : '') + '</div><div class="why" id="cPhotoMsg" aria-live="polite"></div></div>');
+      // The card text: load it once per visit; never overwrite what you are typing.
+      if (charMd[slug] === undefined || $('cMd').dataset.slug !== slug) { charMd[slug] = c.md; $('cMd').value = c.md; $('cMd').dataset.slug = slug; $('cSaved').textContent = ''; }
+      if (c.cutting) setTimeout(function () { if (window.__charDetail === slug) loadCharacters(); }, 2000);
+    }).catch(function () {});
+  }
+  $('cMd').addEventListener('input', function () { $('cSaved').textContent = $('cMd').value === charMd[$('cMd').dataset.slug] ? '' : 'Unsaved changes'; });
+  $('cSave').addEventListener('click', function () {
+    var slug = $('cMd').dataset.slug, md = $('cMd').value; $('cSave').disabled = true;
+    post('/api/studio/character/save', { slug: slug, md: md }).then(function () { charMd[slug] = md; $('cSaved').textContent = 'Saved'; })
+      .catch(function (err) { $('cSaved').textContent = err.message; }).then(function () { $('cSave').disabled = false; });
+  });
+  $('cRevert').addEventListener('click', function () { var slug = $('cMd').dataset.slug; $('cMd').value = charMd[slug] || ''; $('cSaved').textContent = ''; });
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'cUpload' || !e.target.files[0]) return;
+    var file = e.target.files[0], slug = window.__charDetail, msg = $('cPhotoMsg');
+    msg.textContent = 'Uploading ' + file.name + '…';
+    fetch('/api/studio/character/photo?slug=' + encodeURIComponent(slug) + '&name=' + encodeURIComponent(file.name), { method: 'POST', headers: { 'X-Studio-Token': TOKEN, 'Content-Type': file.type || 'application/octet-stream' }, body: file })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Upload failed'); return j; }); })
+      .then(function (j) { charMd[slug] = undefined; loadCharacters(); setTimeout(function () { var m = $('cPhotoMsg'); if (m) m.textContent = 'Added ' + j.file + '.'; }, 300); })
+      .catch(function (err) { msg.textContent = err.message; });
+  });
+  $('newCharBtn').addEventListener('click', function () { $('newCharForm').hidden = false; $('ncName').focus(); });
+  $('ncCancel').addEventListener('click', function () { $('newCharForm').hidden = true; $('ncMsg').textContent = ''; });
+  $('newCharForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!$('ncName').value.trim()) { $('ncMsg').textContent = 'Give it a name first.'; return; }
+    $('ncCreate').disabled = true;
+    post('/api/studio/character/new', { name: $('ncName').value, role: $('ncRole').value, look: $('ncLook').value, accessory: $('ncAcc').value, notes: $('ncNotes').value })
+      .then(function (j) { $('newCharForm').reset(); $('newCharForm').hidden = true; $('ncMsg').textContent = ''; location.hash = '#characters/' + encodeURIComponent(j.slug); })
+      .catch(function (err) { $('ncMsg').textContent = err.message; }).then(function () { $('ncCreate').disabled = false; });
+  });
+
+  // ── Skills page (#skills, #skills/<name>) ──
+  // A skill's SKILL.md is split at its "## " headings: each part reads as formatted text and can be edited on its own.
+  // Every save names the version it started from, so a change made meanwhile (in a chat session) is never overwritten.
+  var skill = null, openSec = {}, editSec = null;
+  function inlineMd(t) {   // t is escaped already
+    return t.split(/(`[^`]+`)/).map(function (x, i) {
+      return i % 2 ? '<code>' + x.slice(1, -1) + '</code>' : x.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+    }).join('');
+  }
+  function tableHtml(rows) {
+    var cells = function (r) { return r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return inlineMd(esc(c.trim())); }); };
+    rows = rows.filter(function (r) { return !/^[\s|:-]+$/.test(r); });
+    return '<div class="tw"><table><thead><tr>' + cells(rows[0]).map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.slice(1).map(function (r) { return '<tr>' + cells(r).map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function mdHtml(src) {
+    var lines = String(src).split('\n'), out = [], para = [], i = 0, LI = /^(\s*)([-*]|\d+\.)\s+(.*)$/;
+    var flush = function () { if (para.length) { out.push('<p>' + inlineMd(esc(para.join(' '))) + '</p>'); para = []; } };
+    while (i < lines.length) {
+      var l = lines[i], h = l.match(/^(#{3,6})\s+(.*)$/), li = l.match(LI);
+      if (/^\s*```/.test(l)) { flush(); var code = []; i++; while (i < lines.length && !/^\s*```/.test(lines[i])) code.push(lines[i++]); i++; out.push('<pre>' + esc(code.join('\n')) + '</pre>'); }
+      else if (h) { flush(); var tag = h[1].length === 3 ? 'h4' : 'h5'; out.push('<' + tag + '>' + inlineMd(esc(h[2])) + '</' + tag + '>'); i++; }
+      else if (/^\s*\|/.test(l)) { flush(); var rows = []; while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]); out.push(tableHtml(rows)); }
+      else if (li) {
+        flush(); var ordered = /\d/.test(li[2]), items = [];
+        while (i < lines.length) {
+          var m = lines[i].match(LI);
+          if (m) { items.push(m[3]); i++; } else if (items.length && /^\s{2,}\S/.test(lines[i])) { items[items.length - 1] += ' ' + lines[i].trim(); i++; } else break;
+        }
+        out.push(ordered ? '<ol start="' + (parseInt(li[2], 10) || 1) + '">' : '<ul>');
+        out.push(items.map(function (x) { return '<li>' + inlineMd(esc(x)) + '</li>'; }).join('') + (ordered ? '</ol>' : '</ul>'));
+      }
+      else if (!l.trim()) { flush(); i++; }
+      else { para.push(l.trim()); i++; }
+    }
+    flush();
+    return out.join('');
+  }
+  // [0] is the header (frontmatter, title, intro); then one part per "## " heading. Joined back they are the file.
+  function skillParts(md) {
+    var at = [], re = /^## .*$/gm, m;
+    while ((m = re.exec(md))) at.push(m.index);
+    var head = md.slice(0, at.length ? at[0] : md.length);
+    return [{ title: 'Overview', text: head, body: head.replace(/^---\n[\s\S]*?\n---\n/, '').replace(/^\s*# .*\n/, '') }].concat(at.map(function (s, k) {
+      var t = md.slice(s, k + 1 < at.length ? at[k + 1] : md.length), first = t.split('\n')[0];
+      return { title: first.replace(/^##\s+/, ''), text: t, body: t.slice(first.length + 1) };
+    }));
+  }
+  function skillIcon(k) {
+    return k.character && k.character.photo ? '<img class="kicon" alt="" src="' + esc(k.character.photo) + '">' : '<span class="kicon" aria-hidden="true">✦</span>';
+  }
+  function loadSkills() {
+    var name = window.__skillDetail;
+    $('skillList').hidden = !!name; $('skillDetail').hidden = !name;
+    if (!name) {
+      skill = null;
+      fetch('/api/studio/skills').then(function (r) { return r.json(); }).then(function (j) {
+        setHtml($('skillGrid'), (j.skills || []).map(function (k) {
+          var sub = k.title.replace(/^\/[a-z0-9-]+:\s*/, ''), first = (k.description.match(/^.*?[.!?](\s|$)/) || [k.description])[0];
+          return '<li><a class="skillcard" href="#skills/' + esc(encodeURIComponent(k.name)) + '"><div class="top">' + skillIcon(k) + '<div><strong class="mono" style="font-size:16px">' + esc(k.command) + '</strong><div class="sub">' + esc(sub) + '</div></div></div>' +
+            '<p>' + esc(first) + '</p><div class="foot">' + k.steps.length + ' steps · ' + k.agents.length + (k.agents.length === 1 ? ' helper' : ' helpers') + ' · ' + k.sections + ' parts · edited ' + agoSpan(k.updated) + '</div></a></li>';
+        }).join('') || '<li class="empty">No skills found.</li>');
+      }).catch(function () {});
+      return;
+    }
+    fetch('/api/studio/skill?name=' + encodeURIComponent(name)).then(function (r) { return r.ok ? r.json() : null; }).then(function (k) {
+      if (window.__skillDetail !== name) return;
+      if (!k) { $('pageTitle').textContent = 'Skills'; setHtml($('kHead'), '<div class="empty">That skill is not here.</div>'); setHtml($('kFlow'), ''); setHtml($('kSecs'), ''); return; }
+      if (!skill || skill.name !== name) { openSec = { 0: true }; editSec = null; $('kMd').value = k.md; $('kSaved').textContent = ''; $('kMsg').textContent = ''; }
+      skill = k; renderSkill();
+    }).catch(function () {});
+  }
+  function renderSkill() {
+    var k = skill;
+    $('pageTitle').textContent = k.command;
+    $('kPath').textContent = '.claude/skills/' + k.name + '/SKILL.md';
+    setHtml($('kHead'), '<div class="khead">' + skillIcon(k) + '<div style="display:flex;flex-direction:column;gap:6px;min-width:0"><strong style="font-size:18px">' + esc(k.title.replace(/^\/[a-z0-9-]+:\s*/, '')) + '</strong>' +
+      '<p>' + esc(k.description) + '</p><div class="sub">Start it on the Studio page, or type <span class="mono">' + esc(k.command) + '</span> in a chat · edited ' + agoSpan(k.updated) + '</div></div></div>');
+    setHtml($('kFlow'), '<div class="kpanel"><h3>The steps you see on In progress</h3><ol class="kflow">' + k.steps.map(function (s, i) {
+      return '<li><span class="st"><span class="n">' + (i + 1) + '</span>' + esc(s.label) + '</span></li>';
+    }).join('') + '</ol>' + (k.agents.length ? '<h3 style="margin-top:4px">Helpers it hands work to</h3><div class="chips">' + k.agents.map(function (a) { return '<span class="pill mono">' + esc(a) + '</span>'; }).join('') + '</div>' +
+      '<div class="why">Helpers do the building and checking; the skill itself asks you every question and is the only one that spends credits.</div>' : '') + '</div>');
+    var parts = skillParts(k.md);
+    $('kSecs').innerHTML = parts.map(function (p, i) {
+      var open = !!openSec[i] || editSec === i;
+      var body = !open ? '' : editSec === i
+        ? '<div class="kbody"><label for="kSecText" class="sr">' + esc(p.title) + '</label><textarea id="kSecText" spellcheck="false">' + esc(p.text) + '</textarea>' +
+          '<div class="acts"><button class="btn primary sm" type="button" data-ksave="' + i + '">Save this part</button><button class="btn sm" type="button" data-kcancel="1">Cancel</button></div></div>'
+        : '<div class="kbody"><div class="md">' + (mdHtml(p.body) || '<p class="why">Nothing here.</p>') + '</div><div class="acts"><button class="btn sm" type="button" data-kedit="' + i + '">Edit this part</button></div></div>';
+      return '<li class="' + (open ? 'open' : '') + '"><button type="button" data-ksec="' + i + '" aria-expanded="' + open + '"><span>' + inlineMd(esc(p.title)) + '</span><span class="chev" aria-hidden="true">›</span></button>' + body + '</li>';
+    }).join('');
+    if (editSec !== null && $('kSecText')) $('kSecText').focus();
+  }
+  function saveSkill(md, done) {
+    $('kMsg').textContent = 'Saving…';
+    return post('/api/studio/skill/save', { name: skill.name, md: md, version: skill.version }).then(function (j) {
+      var dirty = $('kMd').value !== skill.md;
+      skill.md = md.endsWith('\n') ? md : md + '\n'; skill.version = j.version; skill.updated = new Date().toISOString();
+      if (!dirty || done === 'whole') $('kMd').value = skill.md;
+      $('kMsg').textContent = 'Saved. The next session that runs ' + skill.command + ' uses it.'; if (done === 'whole') $('kSaved').textContent = 'Saved';
+      editSec = null; renderSkill();
+    }).catch(function (err) { $('kMsg').textContent = err.message; if (done === 'whole') $('kSaved').textContent = err.message; });
+  }
+  $('kSecs').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || !skill) return;
+    var d = b.dataset;
+    if (d.ksec !== undefined) { var i = +d.ksec; if (editSec === i) return; openSec[i] = !openSec[i]; renderSkill(); return; }
+    if (d.kedit !== undefined) { editSec = +d.kedit; openSec[editSec] = true; renderSkill(); return; }
+    if (d.kcancel) { editSec = null; renderSkill(); return; }
+    if (d.ksave !== undefined) {
+      var at = +d.ksave, parts = skillParts(skill.md), text = $('kSecText').value;
+      if (at < parts.length - 1 && !/\n$/.test(text)) text += '\n\n';
+      b.disabled = true;
+      saveSkill(parts.map(function (p, j) { return j === at ? text : p.text; }).join('')).then(function () { b.disabled = false; });
+    }
+  });
+  $('kMd').addEventListener('input', function () { $('kSaved').textContent = skill && $('kMd').value !== skill.md ? 'Unsaved changes' : ''; });
+  $('kSave').addEventListener('click', function () { if (skill) { $('kSave').disabled = true; saveSkill($('kMd').value, 'whole').then(function () { $('kSave').disabled = false; }); } });
+  $('kRevert').addEventListener('click', function () { if (skill) { $('kMd').value = skill.md; $('kSaved').textContent = ''; } });
+  document.addEventListener('studio:page', function () { if (document.body.dataset.page === 'skills') loadSkills(); });
+  document.addEventListener('studio:page', function () { if (document.body.dataset.page === 'characters') loadCharacters(); });
+  document.addEventListener('input', function (e) {
+    var dk = e.target.dataset && e.target.dataset.draft; if (!dk) return;
+    drafts[dk] = e.target.value;
+    var m = /^stepmsg:(.*):([^:]*)$/.exec(dk); if (m) delete stepHints[m[1] + '|' + m[2]];   // a new message clears the last send's note
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('button');
+    // A click anywhere on a card (not on its buttons, links, notes or media) opens that run's page.
+    if (!t && !e.target.closest('a, textarea, input, label, video, .log')) {
+      var card = e.target.closest('[data-card]');
+      if (card && !window.__runDetail) { location.hash = '#progress/' + encodeURIComponent(card.dataset.card); return; }
+    }
+    if (!t) return;
+    var d = t.dataset;
+    if (d.open) { location.hash = '#progress/' + encodeURIComponent(d.open); return; }
+    if (d.cmain) { act('/api/studio/character/source', { slug: window.__charDetail, file: d.cmain }, t, function () { charMd[window.__charDetail] = undefined; loadCharacters(); }); return; }
+    if (d.ccut) { act('/api/studio/character/cutout', { slug: d.ccut }, t, function () { loadCharacters(); }); return; }
+    // A video's steps: open one, switch takes, and "Redo from this step" (asks first, then starts the new take).
+    var sv = window.__selVideo;
+    // The redo note keeps the steps from redrawing while it has focus, and a click on a button (in WebKit) leaves the focus there.
+    var redraw = function () { var a = document.activeElement; if (a && a.closest && a.closest('#dSteps')) a.blur(); load(); };
+    if (d.stepsel && sv) {   // the current step starts open, so its first click closes it
+      var cur = stepSel[sv.key] || {}, openKey = cur.key !== undefined ? cur.key : (cur.take || sv.take || 1) === (sv.take || 1) ? sv.step : null;
+      stepSel[sv.key] = { key: openKey === d.stepsel ? null : d.stepsel, take: cur.take }; redoAsk = null; redraw(); return;
+    }
+    if (d.take && sv) { stepSel[sv.key] = { key: (stepSel[sv.key] || {}).key, take: +d.take }; redoAsk = null; redraw(); return; }
+    if (d.stepsend && sv) {
+      var sid = 'stepmsg:' + sv.key + ':' + d.stepsend, ta = document.getElementById(sid), txt = ta ? ta.value.trim() : '', hk = sv.key + '|' + d.stepsend;
+      var si = sv.steps.map(function (s) { return s.key; }).indexOf(d.stepsend), run = window.__selRun, chat = window.__selChat, svk = sv.key;
+      if (!txt) { stepHints[hk] = 'Write a message first.'; redraw(); return; }
+      if (si < 0 || (!run && !chat)) return;
+      var tagged = '[Step ' + (si + 1) + ' · ' + sv.steps[si].label + '] ' + txt;
+      t.disabled = true;
+      post('/api/studio/message', run ? { run: run, text: tagged } : { project: chat, text: tagged })
+        .then(function (j) { drafts[sid] = ''; if (j.moved) chosen[svk] = j.run; stepHints[hk] = j.moved ? 'Sent. It moved into the app and is picking it up.' : j.status === 'after-turn' ? 'Sent. It reaches the run when this turn ends.' : 'Sent. The run is picking it up.'; redraw(); })
+        .catch(function (err) { stepHints[hk] = err.message; redraw(); })
+        .then(function () { t.disabled = false; });
+      return;
+    }
+    if (d.redo && sv) { redoAsk = sv.key + '|' + d.redo; redraw(); return; }
+    if (d.redoCancel && sv) { redoAsk = null; redraw(); return; }
+    if (d.redoGo && sv) {
+      var did = 'redo:' + sv.key + ':' + d.redoGo, rk = sv.key;
+      act('/api/studio/redo', { project: sv.project, run: window.__selRun || undefined, step: d.redoGo, text: drafts[did] || '' }, t, function (j) {
+        delete drafts[did]; redoAsk = null; stepSel[rk] = { key: null, take: j.take }; if (j.moved) chosen[rk] = j.run;
+        var a = document.activeElement; if (a && a.closest && a.closest('#dSteps')) a.blur();
+      });
+      return;
+    }
+    if (d.session) { var vk = shownDetail && shownDetail.split('|')[0]; if (vk) { chosen[vk] = d.session; load(); } return; }
+    if (d.play) { var pl = $('player'); pl.querySelector('video').src = d.play; pl.showModal(); pl.querySelector('video').play().catch(function () {}); return; }
+    if (d.closePlayer !== undefined) { $('player').close(); return; }
+    // A sent note is cleared, so it isn't pre-filled into the next gate that reuses the same id.
+    if (d.opt) { optSel[d.opt] = d.optid; load(); return; }
+    if (d.approve) act('/api/studio/answer', { gateId: d.approve, decision: 'approve', choice: d.choice || null, text: drafts[d.approve] || '' }, t, function () { delete drafts[d.approve]; delete optSel[d.approve]; });
+    if (d.notes) { if (!(drafts[d.notes] || '').trim()) { alertBox('Write your notes first.'); return; } act('/api/studio/answer', { gateId: d.notes, decision: 'notes', text: drafts[d.notes] }, t, function () { delete drafts[d.notes]; }); }
+    if (d.stop) act('/api/studio/stop', { run: d.stop }, t);
+    if (d.resume) act('/api/studio/resume', { run: d.resume }, t);
+  });
+
+  function serverLine(up) {
+    $('serverLine').innerHTML = '<span class="dot" aria-hidden="true" style="background:' + (up ? 'var(--ok-ink)' : 'var(--accent)') + '"></span>' + (up ? 'Server on · localhost:4420' : 'Server not answering · it restarts by itself');
+  }
+  function load() {
+    if (document.hidden) return;            // nothing to show while the window is hidden
+    fetch('/api/studio/state').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (state) {
+        serverLine(true);
+        try { render(state); } catch (e) { console.error(e); $('updated').textContent = 'Display error: ' + e.message; }
+      })
+      .catch(function () { serverLine(false); $('updated').textContent = 'Server not reachable'; });
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+  // Closing the player (button, Esc or a click outside the video) stops the sound.
+  $('player').addEventListener('close', function () { var v = this.querySelector('video'); v.pause(); v.removeAttribute('src'); v.load(); });
+  $('player').addEventListener('click', function (e) { if (e.target === this) this.close(); });
+  // A gate's or step's picture opens large inside the Studio (⌘-click still opens it in the browser).
+  // ‹ › and the arrow keys step through the other pictures of the same question; clicking the picture toggles full size.
+  var view = { list: [], i: 0 };
+  function showPic(i) {
+    view.i = (i + view.list.length) % view.list.length;
+    var vw = $('viewer'); vw.classList.remove('full'); vw.scrollTop = vw.scrollLeft = 0;
+    $('vImg').src = view.list[view.i]; $('vImg').alt = 'Picture ' + (view.i + 1) + ' of ' + view.list.length;
+    $('vCount').textContent = (view.i + 1) + ' / ' + view.list.length;
+    $('vCount').hidden = $('vPrev').hidden = $('vNext').hidden = view.list.length < 2;
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a.zoom');
+    if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    var group = a.closest('.imgs, .opts') || a.parentNode, links = [].slice.call(group.querySelectorAll('a.zoom'));
+    view.list = links.map(function (l) { return l.getAttribute('href'); });
+    showPic(links.indexOf(a)); $('viewer').showModal();
+  });
+  $('vPrev').addEventListener('click', function () { showPic(view.i - 1); });
+  $('vNext').addEventListener('click', function () { showPic(view.i + 1); });
+  $('vClose').addEventListener('click', function () { $('viewer').close(); });
+  $('vImg').addEventListener('click', function () { $('viewer').classList.toggle('full'); });
+  $('viewer').addEventListener('click', function (e) { if (e.target === this) this.close(); });
+  $('viewer').addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); showPic(view.i - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); showPic(view.i + 1); }
+  });
+  $('viewer').addEventListener('close', function () { $('vImg').removeAttribute('src'); });
+  document.addEventListener('studio:page', load);   // a new page: refresh its contents and the window title
+  if (!TOKEN) document.body.classList.add('readonly');
+  if (!TOKEN) { $('startMsg').className = 'msg readonly-note'; $('startMsg').textContent = 'Read-only in a browser tab: open the Video Studio app to start sessions and answer approvals.'; }
+  load();
+  setInterval(load, 5000);
+})();
+
+// Each sidebar item is its own page: /studio#new (Studio) and #progress (In progress; the old #runs, #waiting and
+// #projects land there). Only that page's
+// section shows; the sidebar marks it; Back/Forward move between pages.
+(function () {
+  var PAGES = { new: 'Studio', progress: 'In progress', characters: 'Characters', skills: 'Skills' };
+  var OLD = { runs: 1, waiting: 1, projects: 1 };   // the old Runs, Waiting for you and Projects tabs all land on In progress
+  var links = [].slice.call(document.querySelectorAll('.navlist a[href^="#"]'));
+  // #progress/<key> is one video's page inside In progress.
+  function current() { var h = location.hash.slice(1).split('/')[0]; return PAGES[h] ? h : 'new'; }
+  function detail() { var m = location.hash.match(/^#progress\/(.+)$/); try { return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; } }
+  function show(focus) {
+    var old = location.hash.slice(1).split('/');
+    if (OLD[old[0]]) history.replaceState(null, '', '#progress' + (old[1] ? '/' + old.slice(1).join('/') : ''));
+    var page = current();
+    window.__runDetail = page === 'progress' ? detail() : null;
+    var cm = location.hash.match(/^#characters\/(.+)$/); try { window.__charDetail = page === 'characters' && cm ? decodeURIComponent(cm[1]) : null; } catch (e) { window.__charDetail = null; }
+    var km = location.hash.match(/^#skills\/(.+)$/); try { window.__skillDetail = page === 'skills' && km ? decodeURIComponent(km[1]) : null; } catch (e) { window.__skillDetail = null; }
+    Object.keys(PAGES).forEach(function (id) { document.getElementById(id).hidden = id !== page; });
+    document.body.dataset.page = page;
+    window.__studioPage = PAGES[page];
+    var h1 = document.getElementById('pageTitle'); h1.textContent = PAGES[page];
+    links.forEach(function (a) {
+      var on = a.getAttribute('href') === '#' + page;
+      a.classList.toggle('on', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    document.dispatchEvent(new Event('studio:page'));
+    if (focus) { window.scrollTo(0, 0); h1.focus({ preventScroll: true }); }
+  }
+  window.addEventListener('hashchange', function () { show(true); });
+  show(false);
+})();
+</script>
+</body>
+</html>

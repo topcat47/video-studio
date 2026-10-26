@@ -1,0 +1,31 @@
+{
+  "_about": "Copy to studio.config.json (setup.sh does it) and restart the server after any change. Every field is optional. Fields starting with _ are notes and are ignored.",
+
+  "name": "Video Studio",
+  "agent": "local.you.video-studio",
+  "_agent": "The LaunchAgent label that runs the server. setup.sh fills it in; the Mac app and /run-videoapp use it.",
+
+  "higgsfieldMcp": "mcp__claude_ai_Higgsfield",
+  "_higgsfieldMcp": "The Higgsfield MCP's tool prefix in `claude -p` sessions (one name or a list). Background runs get only these Higgsfield tools, and the paid guard watches them. /setup finds the right one.",
+
+  "subjects": {},
+  "_subjects": "Extra library folders as { id: \"Folder\" }. Each character swap skill adds its own folder (its `folder:` line), and Other/ is always there, so this is usually empty.",
+
+  "songsDir": "songs",
+  "_songsDir": "Where the Songs tab looks for music (relative to the repo, or ~/…).",
+
+  "postedDir": null,
+  "_postedDir": "Optional: a folder of videos that are already posted; listed with Posted ticked.",
+
+  "sourceDirs": ["~/Downloads"],
+  "_sourceDirs": "Extra folders a card's original can be picked from (each subject's originals/ always counts).",
+
+  "accounts": {},
+  "_accounts": "Social accounts a video can be queued or posted on, e.g. { \"tiktok:mycat\": \"TikTok @mycat\", \"x:mycat\": \"X @mycat\" }.",
+
+  "brands": [],
+  "_brands": "One per starring character, for the Buffer section: [{ \"subject\": \"<swap skill name>\", \"name\": \"My Cat\", \"handle\": \"mycat\", \"accounts\": [\"tiktok:mycat\", \"x:mycat\"], \"voice\": { \"x\": \"how its X captions sound\", \"tiktok\": \"how its TikTok captions sound\", \"reply\": \"how it replies to comments\" } }]. A Buffer channel whose handle contains `handle` counts as the brand's.",
+
+  "finds": {},
+  "_finds": "Optional lists of candidate clips to swap, shown as library tabs: { \"<id>\": { \"label\": \"🎙 Someone\", \"list\": \"<id>-finds.json\", \"dir\": \"<folder with the clips' local copies>\" } }. The list lives in video-library/ (same fields as the example in README.md)."
+}

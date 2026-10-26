@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Video Studio">
+  <!-- Split frame: the outlined half is the original, the solid half the conversion; the play mark crosses the seam
+       and flips colour on each side. The same mark is inlined in studio.html and index.html (sidebar + favicon). -->
+  <defs>
+    <clipPath id="vs-tile"><rect x="4" y="4" width="56" height="56" rx="15"/></clipPath>
+    <clipPath id="vs-orig"><polygon points="0,0 64,0 0,64"/></clipPath>
+    <clipPath id="vs-conv"><polygon points="64,0 64,64 0,64"/></clipPath>
+  </defs>
+  <polygon points="64,0 64,64 0,64" fill="#C6F432" clip-path="url(#vs-tile)"/>
+  <rect x="5.75" y="5.75" width="52.5" height="52.5" rx="13.25" fill="none" stroke="#C6F432" stroke-width="3.5"/>
+  <g stroke-linejoin="round" stroke-width="3">
+    <polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#C6F432" stroke="#C6F432" clip-path="url(#vs-orig)"/>
+    <polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#0E0F11" stroke="#0E0F11" clip-path="url(#vs-conv)"/>
+  </g>
+</svg>

@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Studio · Library</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Video Studio"%3E%3Cdefs%3E%3CclipPath id="vs-tile"%3E%3Crect x="4" y="4" width="56" height="56" rx="15"/%3E%3C/clipPath%3E%3CclipPath id="vs-orig"%3E%3Cpolygon points="0,0 64,0 0,64"/%3E%3C/clipPath%3E%3CclipPath id="vs-conv"%3E%3Cpolygon points="64,0 64,64 0,64"/%3E%3C/clipPath%3E%3C/defs%3E%3Cpolygon points="64,0 64,64 0,64" fill="#C6F432" clip-path="url%28#vs-tile%29"/%3E%3Crect x="5.75" y="5.75" width="52.5" height="52.5" rx="13.25" fill="none" stroke="#C6F432" stroke-width="3.5"/%3E%3Cg stroke-linejoin="round" stroke-width="3"%3E%3Cpolygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#C6F432" stroke="#C6F432" clip-path="url%28#vs-orig%29"/%3E%3Cpolygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#0E0F11" stroke="#0E0F11" clip-path="url%28#vs-conv%29"/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  /* Layout after Frame.io / Runway (sidebar + poster grid by day) and Vimeo / Frame.io review (player left, details right). */
+  :root {
+    color-scheme: dark;
+    /* Same dark system as the Studio (studio.html): near-black surfaces, one electric-lime accent. */
+    --bg: #0E0F11; --side: #111215; --panel: #17181C; --panel2: #1E2025; --line: #25272D; --line2: #353840;
+    --text: #F2F3F5; --muted: #9A9DA6; --dim: #9A9DA6; --accent: #C6F432; --accent-ink: #0E0F11;
+    --posted: #3ccf7a; --unposted: #5aa7ff; --delete: #ff5a5a; --approved: #f5c542;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 -apple-system, system-ui, sans-serif;
+         display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+  body.reviewing { overflow: hidden; }
+  button { font: inherit; }
+
+  /* ── Sidebar ── */
+  .sidebar { position: sticky; top: 0; height: 100vh; overflow: auto; background: var(--side); border-right: 1px solid var(--line);
+             padding: 14px 10px; display: flex; flex-direction: column; gap: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 2px 6px; }
+  .brand .logo { width: 30px; height: 30px; display: block; flex: none; }
+  .brand b { display: block; font-size: 14px; }
+  .brand small { color: var(--muted); font-size: 12px; }
+  .navlbl { color: var(--dim); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 0 8px 6px; }
+  .navlist { display: flex; flex-direction: column; gap: 1px; }
+  .navitem { display: flex; align-items: center; gap: 9px; width: 100%; background: none; border: 0; color: var(--muted);
+             padding: 7px 8px; border-radius: 7px; cursor: pointer; text-align: left; font-size: 13.5px; }
+  .navitem:hover { background: var(--panel); color: var(--text); }
+  .navitem.active { background: var(--panel2); color: var(--text); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+  .navitem .ic { width: 18px; text-align: center; flex: none; }
+  .navitem .n { margin-left: auto; color: var(--dim); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .navitem.active .n { color: var(--muted); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; margin: 0 5px; }
+  .sidefoot { margin-top: auto; color: var(--dim); font-size: 11.5px; padding: 0 8px; line-height: 1.6; }
+  kbd { font: 11px ui-monospace, monospace; background: var(--panel2); border: 1px solid var(--line2); border-bottom-width: 2px;
+        border-radius: 4px; padding: 0 4px; color: var(--muted); }
+
+  /* ── Top bar ── */
+  .app { min-width: 0; }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(13,13,15,.92); backdrop-filter: blur(10px);
+           border-bottom: 1px solid var(--line); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .crumb { font-size: 15px; font-weight: 700; white-space: nowrap; }
+  .crumb .sub { color: var(--muted); font-weight: 400; }
+  .search { flex: 1 1 320px; position: relative; display: flex; align-items: center; max-width: 620px; margin-left: auto; }
+  .search svg { position: absolute; left: 10px; width: 15px; height: 15px; stroke: var(--muted); pointer-events: none; }
+  .search kbd { position: absolute; right: 9px; pointer-events: none; }
+  #q { width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+       padding: 8px 34px 8px 32px; font: inherit; }
+  #q:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(198,244,50,.16); }
+  header select, .toggle { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+                           padding: 7px 10px; font: inherit; font-size: 13px; cursor: pointer; max-width: 230px; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .toggle input { margin: 0; accent-color: var(--accent); }
+  .toggle .n { color: var(--dim); }
+  main { padding: 0 24px 48px; }
+  main > .grid:first-child { margin-top: 18px; }
+
+  /* ── Day groups + poster grid ── */
+  .day { position: sticky; top: var(--head, 0px); z-index: 4; display: flex; align-items: baseline; gap: 10px;
+         margin: 0 -24px 12px; padding: 18px 24px 10px; background: rgba(13,13,15,.92); backdrop-filter: blur(10px);
+         font-size: 15px; font-weight: 700; }
+  .day .sub { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .day .n { color: var(--dim); font-weight: 400; font-size: 12.5px; }
+  section + section { margin-top: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .grid.tiles { grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 16px 12px; }
+
+  .tile { display: flex; flex-direction: column; gap: 8px; background: none; border: 0; padding: 0; color: inherit;
+          text-align: left; cursor: pointer; min-width: 0; }
+  .poster { position: relative; aspect-ratio: 9/16; border-radius: 10px; overflow: hidden; background: #000;
+            outline: 1px solid var(--line); transition: outline-color .12s, transform .12s; }
+  .poster > img.main { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile:hover .poster, .tile:focus-visible .poster { outline: 2px solid var(--accent); }
+  .tile:focus-visible { outline: none; }
+  .tile.del .poster { outline: 2px solid var(--delete); }
+  .tile.archived { opacity: .55; } .tile.archived:hover { opacity: 1; }
+  .poster .pip { position: absolute; left: 6px; bottom: 6px; width: 30%; aspect-ratio: 9/16; object-fit: cover; border-radius: 5px;
+                 border: 1.5px solid rgba(255,255,255,.85); box-shadow: 0 2px 8px rgba(0,0,0,.6); background: #111; }
+  .poster .ov { position: absolute; display: flex; gap: 4px; flex-wrap: wrap; }
+  .poster .tl { top: 6px; left: 6px; } .poster .tr { top: 6px; right: 6px; justify-content: flex-end; }
+  .poster .br { bottom: 6px; right: 6px; }
+  .pill { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+          background: rgba(0,0,0,.66); color: #fff; backdrop-filter: blur(4px); }
+  .pill.appr { background: var(--approved); color: #111; }
+  .pill.posted { background: var(--posted); color: #111; }
+  .pill.del { background: var(--delete); color: #111; }
+  .pill.warn { color: #ffb3b3; }
+  .poster .play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .12s;
+                  background: rgba(0,0,0,.25); font-size: 30px; color: #fff; text-shadow: 0 0 10px #000; }
+  .tile:hover .play { opacity: 1; }
+  .tname { font-size: 12.5px; font-weight: 600; line-height: 1.3; word-break: break-word;
+           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tdesc { font-size: 12px; color: var(--muted); line-height: 1.35;
+           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tmeta { font-size: 11.5px; color: var(--dim); }
+  .tinfo { display: flex; flex-direction: column; gap: 3px; padding: 0 2px; }
+
+  /* ── Review panel ── */
+  #review[hidden] { display: none; }
+  .rv-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.7); backdrop-filter: blur(3px); }
+  .rv { position: fixed; inset: 20px; z-index: 21; background: var(--panel); border: 1px solid var(--line2); border-radius: 14px;
+        overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .rv-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 18px; border-bottom: 1px solid var(--line);
+             border-top: 3px solid var(--c); }
+  .rv-title { min-width: 0; flex: 1; }
+  .rv-title .name { font-size: 14px; }
+  .rv-title .meta { margin-top: 2px; }
+  .iconbtn { background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 8px;
+             width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer; font-size: 15px; flex: none; }
+  .iconbtn:hover { border-color: var(--muted); }
+  .iconbtn:disabled { opacity: .35; cursor: default; }
+  .rv-pos { color: var(--dim); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .rv-body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; min-height: 0; }
+  .rv-media { background: #050506; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 14px; min-height: 0; }
+  .rv-media .vside { position: relative; min-height: 0; display: flex; }
+  .rv-media video { width: 100%; height: 100%; object-fit: contain; background: #000; border-radius: 8px; display: block; }
+  .rv-media .tag { position: absolute; top: 8px; left: 8px; z-index: 1; }
+  .rv-info { overflow: auto; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 12px; border-left: 1px solid var(--line); }
+  .rv-info .sect { color: var(--dim); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: -6px; }
+
+  /* ── Shared card pieces (review panel, songs, finds) ── */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+          display: flex; flex-direction: column; border-top: 3px solid var(--c, var(--line)); }
+  .card.rv { display: grid; }
+  .tag { background: rgba(0,0,0,.7); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; pointer-events: none; }
+  .missing { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px;
+             gap: 10px; color: var(--muted); font-size: 12.5px; text-align: center; padding: 12px; background: #0b0b0d; border: 1px dashed var(--line2); }
+  .btn, .tab { background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 7px;
+               padding: 6px 12px; font-size: 12.5px; cursor: pointer; }
+  .btn:hover, .tab:hover { border-color: var(--muted); }
+  .origname { color: var(--muted); font-size: 11.5px; word-break: break-all; }
+  .srcrow { display: flex; align-items: center; gap: 6px; font-size: 12px; min-width: 0; }
+  .srcrow .lbl { color: var(--muted); flex: none; }
+  .srcrow a.srclink { color: #8ab4ff; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .srcrow a.srclink:hover { text-decoration: underline; }
+  .srcrow button { flex: none; background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px;
+                   padding: 3px 9px; font-size: 11.5px; cursor: pointer; }
+  .srcrow button.copy { border-color: #3d5a8a; }
+  .srcrow .add { color: var(--muted); cursor: pointer; font-style: italic; }
+  .srcrow input { flex: 1; min-width: 0; background: #111114; color: var(--text); border: 1px solid var(--line2);
+                  border-radius: 6px; padding: 5px 7px; font: inherit; font-size: 12px; }
+  .picker { display: flex; flex-direction: column; gap: 4px; }
+  .picker input { background: #111114; color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 6px; font: inherit; font-size: 12px; }
+  .picker .opts { max-height: 200px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+  .picker .opt { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line);
+                 color: var(--text); padding: 6px 8px; font-size: 11.5px; cursor: pointer; }
+  .picker .opt:hover { background: var(--panel2); }
+  .picker .opt small { color: var(--muted); display: block; }
+  .body { padding: 12px; display: flex; flex-direction: column; gap: 9px; }
+  .name { font-weight: 600; word-break: break-all; font-size: 12.5px; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .flag { background: #3a1d1d; color: #ffb3b3; border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+  [role=button][data-act]:focus-visible, a[data-goto]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .check { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; background: var(--panel2); color: var(--muted);
+           border: 1px solid var(--line2); border-radius: 8px; padding: 8px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .check .box { width: 16px; height: 16px; border: 2px solid var(--muted); border-radius: 4px; display: grid;
+                place-items: center; font-size: 12px; font-weight: 800; color: #111; }
+  .check.on { color: var(--posted); border-color: var(--posted); font-weight: 600; background: rgba(60,207,122,.08); }
+  .check.on .box { background: var(--posted); border-color: var(--posted); }
+  .check.appr.on { color: var(--approved); border-color: var(--approved); background: rgba(245,197,66,.08); }
+  .check.appr.on .box { background: var(--approved); border-color: var(--approved); }
+  .status { display: flex; }
+  .status button { background: transparent; color: var(--muted); border: 1px solid var(--line2); border-radius: 8px;
+                   padding: 8px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+  .status button:hover { color: var(--delete); border-color: #5a2a2a; }
+  .status button.on { background: var(--c); color: #111; border-color: var(--c); font-weight: 600; }
+  textarea { background: #111114; color: var(--text); border: 1px solid var(--line2); border-radius: 6px;
+             padding: 7px; font: inherit; font-size: 12px; resize: vertical; min-height: 30px; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .actions button, .actions .dlbtn { flex: 1 1 auto; background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 7px;
+                    padding: 6px 10px; font-size: 12px; cursor: pointer; }
+  .actions .trash { color: var(--delete); border-color: #5a2a2a; }
+  .dl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .dlbtn { display: block; text-align: center; background: var(--panel2); color: var(--text); border: 1px solid var(--line2);
+           border-radius: 7px; padding: 6px; font-size: 12px; text-decoration: none; }
+  .dlbtn:hover, .actions button:hover { border-color: var(--muted); }
+  body.songs-view .video-only, body.finds-view .video-only { display: none !important; }
+  .find .thumb { position: relative; aspect-ratio: 9/16; max-height: 340px; width: 100%; background: #000 center/cover no-repeat;
+                 border: 0; cursor: pointer; display: block; }
+  .find .thumb::after { content: '▶'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; color: #fff; text-shadow: 0 0 8px #000; }
+  .find iframe, .find video { width: 100%; aspect-ratio: 9/16; max-height: 440px; border: 0; display: block; background: #000; }
+  .find .thumb.wide, .find video.wide { aspect-ratio: 16/9; }
+  .find .findnote { margin: 4px 0; line-height: 1.4; }
+  .find { --c: #e5484d; position: relative; }
+  .find > .tag { position: absolute; top: 8px; left: 8px; z-index: 1; }
+  .song { --c: #C6F432; }
+  .song audio { width: 100%; }
+  .song .art { display: flex; align-items: center; gap: 12px; }
+  .song .icon { width: 48px; height: 48px; flex: none; border-radius: 10px; display: grid; place-items: center;
+                font-size: 24px; background: linear-gradient(135deg, #2A2D34, #141518); }
+  .used { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .used .lbl { color: var(--muted); font-size: 12px; }
+  .chip { background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 999px;
+          padding: 3px 4px 3px 9px; font-size: 11.5px; display: inline-flex; gap: 4px; align-items: center; }
+  .chip a { color: inherit; text-decoration: none; cursor: pointer; }
+  .chip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0 4px; }
+  .used select { background: #111114; color: var(--muted); border: 1px dashed var(--line2); border-radius: 999px;
+                 padding: 3px 8px; font: inherit; font-size: 11.5px; max-width: 100%; }
+  .searchinfo { color: var(--muted); font-size: 13px; padding: 16px 0 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .searchinfo b { color: var(--text); }
+  .searchinfo .tip { margin-left: auto; font-size: 12px; }
+  .searchinfo code { background: var(--panel2); border-radius: 4px; padding: 1px 5px; color: var(--text); }
+  mark { background: rgba(255, 214, 10, .28); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .desc { font-size: 13.5px; line-height: 1.5; color: #dcdce0; cursor: text; border-radius: 6px; padding: 4px 6px; margin: 0 -6px; }
+  .desc.empty-desc { color: var(--muted); font-style: italic; }
+  .desc:hover { background: var(--panel2); }
+  .desc-edit { width: 100%; min-height: 80px; font-size: 13px; }
+  .hit { font-size: 12px; color: #cfcfcf; background: #131316; border-left: 3px solid #f5c400; border-radius: 4px;
+         padding: 6px 8px; line-height: 1.45; }
+  .hit .where { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; border: 0; padding: 0; background: none; }
+  .tile .hit { -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .xq, .where { border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px; background: #131316; font-size: 13px; }
+  .xq .xq-head, .where .w-head { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; margin-bottom: 6px; font-weight: 600; }
+  .xq .xq-head .count { margin-left: auto; font-weight: 400; }
+  .xq .xq-head .count.over { color: var(--delete); font-weight: 600; }
+  .xq .xq-head button, .where .w-head button { font-size: 11.5px; padding: 2px 9px; background: var(--panel2); color: var(--text);
+                       border: 1px solid var(--line2); border-radius: 6px; cursor: pointer; }
+  .xq p { margin: 0; white-space: pre-wrap; line-height: 1.5; color: #e6e6e6; }
+  .xq.empty p { color: var(--muted); font-style: italic; }
+  .xq textarea { width: 100%; min-height: 130px; font-size: 13px; }
+  .where { font-size: 12.5px; }
+  .where .w-head button { margin-left: auto; }
+  .where .w-row { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; min-width: 0;
+                  padding: 5px 0; border-top: 1px solid var(--line); }
+  .where .w-row:first-of-type { border-top: 0; }
+  .where .acct { font-weight: 600; overflow-wrap: anywhere; }
+  .where .pill { font-size: 11px; font-weight: 600; padding: 1px 7px; backdrop-filter: none; }
+  .where .pill.posted { background: rgba(60,207,122,.15); color: var(--posted); }
+  .where .pill.queued { background: rgba(90,167,255,.15); color: var(--unposted); }
+  .where .cap { color: #cfcfcf; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 120px; }
+  .where .w-act { display: flex; gap: 6px; white-space: nowrap; margin-left: auto; }
+  .where .w-act a { color: var(--unposted); }
+  .where .w-act button { font-size: 11px; padding: 1px 6px; background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 5px; cursor: pointer; }
+  .where .none { color: var(--muted); font-style: italic; }
+  .where .dupe { color: var(--delete); font-weight: 600; margin-top: 4px; }
+  .where form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .where form select, .where form input { background: #111114; color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 5px; font: inherit; font-size: 12px; }
+  .where form textarea, .where form input[name=url] { grid-column: 1 / -1; }
+  .where form textarea { min-height: 60px; font-size: 12.5px; }
+  .where form .f-act { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: flex-end; }
+  .where form .f-act button { background: var(--panel2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+  .where form .f-act button[type=submit] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  details.said { font-size: 12.5px; color: #cfcfcf; border: 1px solid var(--line2); border-radius: 10px; padding: 9px 12px; background: #131316; }
+  details.said summary { color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600; }
+  details.said p { margin: 8px 0 0; line-height: 1.55; max-height: 220px; overflow: auto; }
+  .moreArchive { margin: 18px 0 6px; }
+  .empty { color: var(--muted); padding: 60px 20px; grid-column: 1/-1; text-align: center; line-height: 1.6; }
+
+  @media (max-width: 1100px) { .rv-body { grid-template-columns: minmax(0, 1fr) 340px; } }
+  @media (max-width: 820px) {
+    body { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; flex-direction: row; overflow-x: auto; gap: 14px; padding: 10px 16px;
+               border-right: 0; border-bottom: 1px solid var(--line); }
+    .brand small, .sidefoot, .navlbl { display: none; }
+    .navlist { flex-direction: row; gap: 4px; }
+    .navitem { white-space: nowrap; width: auto; }
+    .navgroup { flex: none; }
+    header { padding: 10px 16px; } main { padding: 0 16px 40px; }
+    .day { margin: 0 -16px 10px; padding: 14px 16px 8px; }
+    .grid.tiles { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .rv { inset: 0; border-radius: 0; }
+    .rv-body { grid-template-columns: minmax(0, 1fr); overflow: auto; }
+    .rv-media { height: 62vh; }
+    .rv-info { overflow: visible; border-left: 0; }
+  }
+  .orig-img { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+  .poster img.broken { visibility: hidden; }
+  /* Bulk select: a checkbox on each card, a bar at the bottom, a confirm box for deleting for good. */
+  .tilewrap { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .tilewrap > .tile { width: 100%; }
+  .sel { position: absolute; top: 8px; left: 8px; z-index: 3; width: 26px; height: 26px; border-radius: 8px; border: 2px solid rgba(255,255,255,.85);
+         background: rgba(0,0,0,.45); color: var(--accent-ink); display: grid; place-items: center; font-size: 15px; font-weight: 800; cursor: pointer;
+         opacity: 0; padding: 0; }
+  .tilewrap:hover .sel, .sel:focus-visible, body.selecting .sel { opacity: 1; }
+  .sel[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+  .tilewrap:hover .ov.tl, body.selecting .ov.tl { transform: translateX(32px); }
+  .tilewrap.picked .poster { outline: 3px solid var(--accent); outline-offset: 0; }
+  body.selecting .tile .play { display: none; }
+  .tacts { display: flex; gap: 6px; }
+  .mini { font: inherit; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line2); background: var(--panel); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .mini:hover { border-color: var(--muted); }
+  .mini:disabled { opacity: .6; cursor: progress; }
+  .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line2); border-top-color: var(--accent); display: inline-block; flex: none; }
+  @media (prefers-reduced-motion: no-preference) { .spin { animation: spin .8s linear infinite; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .selbar { position: fixed; z-index: 30; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+            background: var(--panel2); border: 1px solid var(--line2); border-radius: 14px; padding: 8px 10px 8px 16px; box-shadow: 0 18px 40px rgba(0,0,0,.6); white-space: nowrap; }
+  .selbar[hidden] { display: none; }
+  .selbar b { font-variant-numeric: tabular-nums; }
+  .selbar .mini { padding: 6px 12px; }
+  .selbar .trash { background: var(--delete); border-color: var(--delete); color: #1a0606; }
+  .selbar .trash:disabled { opacity: .45; cursor: not-allowed; }
+  dialog.confirm { border: 1px solid var(--line2); border-radius: 16px; background: var(--panel); color: var(--text); padding: 22px 24px; width: min(92vw, 520px); }
+  dialog.confirm::backdrop { background: rgba(5,6,8,.78); }
+  dialog.confirm h2 { margin: 0 0 8px; font-size: 18px; }
+  dialog.confirm p { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+  dialog.confirm .warn { color: #ffb3b3; font-weight: 600; }
+  dialog.confirm ul { margin: 0 0 8px; padding-left: 18px; max-height: 210px; overflow: auto; font-size: 13px; color: var(--text); }
+  dialog.confirm li { overflow-wrap: anywhere; }
+  dialog.confirm .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  dialog.confirm .row .mini { padding: 8px 14px; font-size: 13px; }
+  dialog.confirm .danger { background: var(--delete); border-color: var(--delete); color: #1a0606; }
+  dialog.confirm .ok { color: var(--posted); }
+  dialog.confirm .bad { color: #ffb3b3; }
+  /* Filters under the header: character, posted or not, date range, and the date sorter. */
+  .filters { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding-top: 2px; }
+  .fgroup { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .fgroup > span { color: var(--dim); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-right: 4px; }
+  .chip { font: inherit; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; }
+  .chip:hover { color: var(--text); }
+  .chip.on { border-color: var(--accent); color: var(--accent); background: rgba(198,244,50,.08); }
+  .poster:has(img.main.broken)::after { content: 'No preview'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="logo" aria-hidden="true" focusable="false"><defs><clipPath id="vs-tile"><rect x="4" y="4" width="56" height="56" rx="15"/></clipPath><clipPath id="vs-orig"><polygon points="0,0 64,0 0,64"/></clipPath><clipPath id="vs-conv"><polygon points="64,0 64,64 0,64"/></clipPath></defs><polygon points="64,0 64,64 0,64" fill="#C6F432" clip-path="url(#vs-tile)"/><rect x="5.75" y="5.75" width="52.5" height="52.5" rx="13.25" fill="none" stroke="#C6F432" stroke-width="3.5"/><g stroke-linejoin="round" stroke-width="3"><polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#C6F432" stroke="#C6F432" clip-path="url(#vs-orig)"/><polygon points="23.5,18.5 23.5,45.5 46.5,32" fill="#0E0F11" stroke="#0E0F11" clip-path="url(#vs-conv)"/></g></svg><div><b>Video Studio</b><small>Library</small></div></div>
+  <div class="navgroup"><div class="navlist"><a class="navitem" href="/studio" style="text-decoration:none"><span class="ic" aria-hidden="true">←</span>Studio</a></div></div>
+  <div class="navgroup"><div class="navlbl">Library</div><div class="navlist" id="views"></div></div>
+  <div class="navgroup video-only"><div class="navlbl">Status</div><div class="navlist" id="tabs"></div></div>
+  <div class="navgroup video-only"><div class="navlbl">Folders</div><div class="navlist" id="folders"></div></div>
+  <div class="sidefoot"><kbd>/</kbd> search · <kbd>←</kbd> <kbd>→</kbd> next video<br><kbd>Esc</kbd> close</div>
+</nav>
+<div class="app">
+<header>
+  <div class="crumb" id="crumb"></div>
+  <label class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" aria-label="Search videos" placeholder="Search titles, descriptions, what's said…" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+  </label>
+  <select id="folder" hidden>
+    <option value="all">All folders</option>
+    <option value="other">Other</option>
+    <option value="generations">Unsorted</option>
+  </select>
+  <select id="where" class="video-only" title="Filter by where it's posted"></select>
+  <label class="toggle video-only" id="archToggle"><input type="checkbox" id="showArchive"> Archive <span class="n" id="archN"></span></label>
+  <div class="filters video-only" id="filters" aria-label="Filters"></div>
+</header>
+<main id="grid"></main>
+</div>
+<div id="review" role="dialog" aria-modal="true" aria-label="Review video" hidden></div>
+<div class="selbar" id="selbar" role="region" aria-label="Selected videos" hidden></div>
+<dialog class="confirm" id="delDlg" aria-labelledby="delTitle"></dialog>
+
+<script>
+// Opinion labels. "Posted" is a separate checkbox.
+const STATUS = {
+  delete:  { label: 'Delete',     color: 'var(--delete)' },
+};
+const TABS = [
+  ['all',      'All',          'var(--text)',     () => true],
+  // Finished videos the owner signed off on. Claude only ticks this after the owner says yes in chat.
+  ['approved', 'Approved',  'var(--approved)', (v) => v.approved],
+  ['progress', 'In progress',  'var(--muted)',    (v) => !v.approved],
+  ['posted',   'Posted',     'var(--posted)',   (v) => v.posted],
+  ['unposted', 'Not posted',   'var(--unposted)', (v) => !v.posted],
+  ['delete',   'Delete',       'var(--delete)',   (v) => v.status === 'delete'],
+];
+// Subject folders, finds sections and brands come from studio.config.json (/api/config), read before the first load.
+const FOLDER_NAME = { other: 'Other', generations: 'Unsorted', content: 'Posted' };
+let SUBJECT_KEYS = ['other'];
+let videos = [];
+let songs = [];
+// Candidate clips to swap, per section (not generations): the config's `finds`, e.g. { label: '🎙 Someone' }.
+const FINDS = {};
+const finds = {};
+let PAIRS = [];   // each brand's TikTok → X pair, for the "on one, not the other" filters
+function setConfig(c) {
+  for (const x of (c && c.subjects) || []) { FOLDER_NAME[x.id] = x.folder; if (!SUBJECT_KEYS.includes(x.id)) SUBJECT_KEYS.push(x.id); }
+  SUBJECT_KEYS = [...SUBJECT_KEYS.filter((k) => k !== 'other'), 'other'];
+  for (const f of (c && c.finds) || []) { FINDS[f.id] = { label: /^\p{Extended_Pictographic}/u.test(f.label) ? f.label : '🔎 ' + f.label, who: f.label.replace(/^\p{Extended_Pictographic}\S*\s*/u, '') }; finds[f.id] = []; }
+  PAIRS = ((c && c.brands) || []).map((b) => [b.accounts.find((a) => a.startsWith('tiktok:')), b.accounts.find((a) => a.startsWith('x:'))]).filter(([t, x]) => t && x);
+  const sel = $('#folder');
+  sel.innerHTML = [['all', 'All folders'], ...SUBJECT_KEYS.map((k) => [k, FOLDER_NAME[k]]), ['generations', 'Unsorted'], ...(c && c.posted ? [['content', 'Posted']] : [])]
+    .map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('');
+  songsDir = (c && c.songs) || 'songs/';
+}
+let songsDir = 'songs/';
+let view = 'videos'; // or 'songs'
+let tab = 'all';
+let candidates = null;
+let picking = null; // id of the card whose original picker is open
+let armedDelete = null; // id of the video whose Delete was clicked once
+let armedTimer;
+let hits = new Map(); // video id -> search highlights for the current query
+// Filters and date sorter above the grid (remembered on this Mac). Character uses the existing #folder.
+const store = { get(k, d) { try { return localStorage.getItem('lib.' + k) || d; } catch { return d; } }, set(k, v) { try { localStorage.setItem('lib.' + k, v); } catch {} } };
+let fPost = store.get('post', 'all'), fDate = store.get('date', 'all'), sortDir = store.get('sort', 'new');
+// Buffer's view of each video (scheduled / sent), so "Posted or not" also knows what Buffer knows.
+let bufferScheduled = new Set(), bufferSent = new Set();
+function loadBuffer() {
+  fetch('/api/buffer/state').then((r) => r.json()).then((b) => {
+    bufferScheduled = new Set((b.scheduled || []).map((p) => p.video).filter(Boolean));
+    bufferSent = new Set((b.sent || []).map((p) => p.video).filter(Boolean));
+    if (fPost !== 'all') render();
+  }).catch(() => {});
+}
+function postState(v) {
+  if (v.posted || v.posts.some((p) => p.status === 'posted') || bufferSent.has(v.id)) return 'posted';
+  if (v.posts.some((p) => p.status === 'queued') || bufferScheduled.has(v.id)) return 'scheduled';
+  return 'none';
+}
+// The date a list is sorted and grouped by: when it was approved on the Approved tab, otherwise when it was made.
+const dateOf = (v) => (tab === 'approved' && v.approvedAt ? Date.parse(v.approvedAt) : v.made);
+function dateTest(v) {
+  if (fDate === 'all') return true;
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  if (fDate === 'week') start.setDate(start.getDate() - 6);
+  if (fDate === 'month') start.setDate(start.getDate() - 29);
+  return dateOf(v) >= start.getTime();
+}
+function renderFilters() {
+  const el = $('#filters'); if (!el) return;
+  const chips = (group, cur, opts) => `<div class="fgroup" role="group" aria-label="${group}"><span>${group}</span>${opts.map(([k, l, attr]) =>
+    `<button type="button" class="chip ${cur === k ? 'on' : ''}" ${attr}="${k}" aria-pressed="${cur === k}">${l}</button>`).join('')}</div>`;
+  const folder = $('#folder').value;
+  el.innerHTML = (SUBJECT_KEYS.length > 1 ? chips('Character', SUBJECT_KEYS.includes(folder) ? folder : 'all', [['all', 'All', 'data-folder'], ...SUBJECT_KEYS.map((k) => [k, esc(FOLDER_NAME[k]), 'data-folder'])]) : '') +
+    chips('Posted', fPost, [['all', 'All', 'data-fpost'], ['none', 'Not posted anywhere', 'data-fpost'], ['scheduled', 'Scheduled', 'data-fpost'], ['posted', 'Posted', 'data-fpost']]) +
+    chips(tab === 'approved' ? 'Approved' : 'Made', fDate, [['all', 'All time', 'data-fdate'], ['today', 'Today', 'data-fdate'], ['week', 'This week', 'data-fdate'], ['month', 'This month', 'data-fdate']]) +
+    `<div class="fgroup"><span>Sort</span><select id="sortDir" aria-label="Sort by date"><option value="new"${sortDir === 'new' ? ' selected' : ''}>Newest first</option><option value="old"${sortDir === 'old' ? ' selected' : ''}>Oldest first</option></select></div>`;
+}
+// Selected videos (ids) for bulk actions.
+const selected = new Set();
+let lastPicked = null;
+const TOKEN = window.__studioToken || '';
+
+const $ = (s) => document.querySelector(s);
+// Always resolves: { error } when the server refuses or can't be reached, so every caller can check r.error.
+const api = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body) })
+  .then((r) => r.json().catch(() => ({})).then((j) => (r.ok ? j : { ...j, error: j.error || `HTTP ${r.status}` })))
+  .catch(() => ({ error: 'The library server is not answering.' }));
+// Re-render after a blur without eating the click that caused it: the blur fires on mousedown, and
+// replacing the clicked button before mouseup would cancel the click.
+let pointerIsDown = false;
+document.addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
+document.addEventListener('pointerup', () => { setTimeout(() => { pointerIsDown = false; }, 0); }, true);
+document.addEventListener('pointercancel', () => { pointerIsDown = false; render(); }, true);
+function renderSoon() {
+  if (!pointerIsDown) return render();
+  const go = () => { document.removeEventListener('pointerup', go, true); setTimeout(render, 0); };
+  document.addEventListener('pointerup', go, true);
+}
+// Save a flag and put it back (with the reason) if the server refuses.
+async function saveFlag(v, key, value, extra = {}) {
+  const old = v[key], oldExtra = Object.fromEntries(Object.keys(extra).map((k) => [k, v[k]]));
+  v[key] = value; Object.assign(v, extra);
+  const r = await api('/api/label', { id: v.id, [key]: value });
+  if (r.error) { v[key] = old; Object.assign(v, oldExtra); alert('Not saved: ' + r.error); }
+  render();
+}
+const mb = (b) => (b / 1048576).toFixed(1) + ' MB';
+const date = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+let lastLoad = '';
+let transcribeStatus = null;   // { current, waiting } from the server's transcriber
+async function refreshTranscribing() {
+  try { transcribeStatus = await fetch('/api/transcribe-status').then((r) => r.json()); } catch { transcribeStatus = null; }
+}
+// While a search is showing and the transcriber is busy, refresh the note (and results) every 10 s.
+setInterval(async () => {
+  if (!$('#q').value.trim() || view !== 'videos' || openId) return;
+  const before = JSON.stringify(transcribeStatus);
+  await refreshTranscribing();
+  if (JSON.stringify(transcribeStatus) !== before) { lastLoad = ''; load(); }
+}, 10000);
+// A poster that can't be made (file still downloading, clip too short) shows "No preview", not a blank.
+document.addEventListener('error', (e) => { if (e.target.matches && e.target.matches('.poster img')) e.target.classList.add('broken'); }, true);
+async function load() {
+  const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u + ' → ' + r.status); return r.json(); });
+  let data;
+  try {
+    data = await Promise.all([get('/api/videos'), get('/api/songs'), get('/api/accounts'), ...Object.keys(FINDS).map((k) => get('/api/finds?s=' + encodeURIComponent(k)))]);
+    await refreshTranscribing();
+  } catch (err) {
+    // Keep what's on screen; say why nothing new appeared.
+    const g = document.getElementById('grid');
+    if (g && !videos.length) g.innerHTML = '<div class="empty">The library server isn\'t answering. It restarts by itself; this page retries when you come back to it.</div>';
+    console.error(err);
+    return;
+  }
+  // Nothing changed (e.g. you just switched back to the window): don't redraw, so playing videos,
+  // songs and YouTube clips keep playing.
+  const key = JSON.stringify(data);
+  if (key === lastLoad) return;
+  lastLoad = key;
+  [videos, songs, accounts] = data;
+  Object.keys(FINDS).forEach((k, i) => { finds[k] = data[3 + i]; });
+  fillWhere();
+  render();
+}
+
+// ───────────── Where it's posted ─────────────
+let accounts = {}; // 'x:<handle>' -> 'X @<handle>'
+let addingPost = null; // id of the card whose "+ Add" form is open
+let armedPost = null; // "<video id>|<index>" whose × was clicked once
+const onAcct = (v, a) => v.posts.some((p) => p.account === a);
+const dupes = (v) => Object.entries(v.posts.reduce((m, p) => ((m[p.account] = (m[p.account] || 0) + 1), m), {}))
+  .filter(([, n]) => n > 1);
+function fillWhere() {
+  const el = $('#where');
+  const keep = el.value || 'any';
+  const short = (a) => accounts[a].replace(/ \(old\)$/, '');
+  el.innerHTML = [['any', 'Posted anywhere or not'], ['none', 'Not queued or posted anywhere'], ['dupes', '⚠ Posted twice on one account'],
+    ...PAIRS.filter(([t, x]) => accounts[t] && accounts[x]).flatMap(([t, x]) => [[`only:${t}|${x}`, `On ${short(t)}, not on ${short(x)}`], [`only:${x}|${t}`, `On ${short(x)}, not on ${short(t)}`]]),
+    ...Object.keys(accounts).map((a) => [`on:${a}`, `On ${accounts[a]}`])]
+    .map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('');
+  el.value = [...el.options].some((o) => o.value === keep) ? keep : 'any';
+}
+function whereTest(v) {
+  const w = $('#where').value || 'any';
+  if (w === 'any') return true;
+  if (w === 'none') return !v.posts.length;
+  if (w === 'dupes') return dupes(v).length > 0;
+  if (w.startsWith('on:')) return onAcct(v, w.slice(3));
+  const [yes, no] = w.slice(5).split('|');
+  return onAcct(v, yes) && !onAcct(v, no);
+}
+const toLocalInput = (d) => new Date(d - new Date(d).getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+
+function whereHtml(v) {
+  const rows = v.posts.map((p, i) => {
+    const when = p.at ? date(p.at) : '';
+    const x = armedPost === `${v.id}|${i}`;
+    return `<div class="w-row"><span class="acct">${esc(accounts[p.account] || p.account)}</span>
+      <span class="pill ${p.status}">${p.status === 'posted' ? '✓ Posted' : '⏳ Queued'}${when ? ' · ' + when : ''}</span>
+      <span class="cap" title="${esc(p.caption || '')}">${esc((p.caption || '').replace(/\s+/g, ' '))}</span>
+      <span class="w-act">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">Open</a>` : ''}
+        <button data-act="rmpost" data-i="${i}" title="Remove this entry">${x ? 'Remove?' : '×'}</button></span></div>`;
+  }).join('');
+  const d = dupes(v).map(([a, n]) => `<div class="dupe">⚠ ${n}× on ${esc(accounts[a] || a)}</div>`).join('');
+  const form = addingPost !== v.id ? '' : `<form data-role="postform">
+    <select name="account">${Object.entries(accounts).map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('')}</select>
+    <select name="status"><option value="posted">Posted</option><option value="queued">Queued</option></select>
+    <input name="at" type="datetime-local" value="${toLocalInput(Date.now())}">
+    <input name="url" placeholder="Link to the live post (optional)">
+    <textarea name="caption" placeholder="Caption used"></textarea>
+    <div class="f-act"><button type="button" data-act="cancelpost">Cancel</button><button type="submit">Save</button></div></form>`;
+  return `<div class="where"><div class="w-head">📣 Where it's posted
+      <button data-act="addpost">${addingPost === v.id ? 'Close' : '+ Add'}</button></div>
+    ${rows || '<div class="none">Not queued or posted anywhere yet.</div>'}${d}${form}</div>`;
+}
+
+document.addEventListener('submit', async (e) => {
+  if (e.target.dataset.role !== 'postform') return;
+  e.preventDefault();
+  const v = videos.find((x) => x.id === e.target.closest('.card').dataset.id);
+  const f = Object.fromEntries(new FormData(e.target));
+  const r = await api('/api/post', { id: v.id, account: f.account, status: f.status,
+    at: f.at ? new Date(f.at).toISOString() : undefined, caption: f.caption, url: f.url.trim() });
+  if (r.error) return alert(r.error);
+  v.posts = r.posts;
+  addingPost = null;
+  render();
+});
+
+const mmss = (s) => (s == null ? '–' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
+
+function renderViews() {
+  $('#views').innerHTML = [['videos', '🎬 Videos', videos.filter((v) => !v.archived).length], ['songs', '🎵 Songs', songs.length], ...Object.entries(FINDS).map(([k, f]) => [k, f.label, finds[k].length])]
+    .map(([k, label, n]) => { const [ic, ...rest] = label.split(' ');
+      return `<button class="navitem ${view === k ? 'active' : ''}" data-view="${k}"${view === k ? ' aria-current="page"' : ''}><span class="ic">${ic}</span>${rest.join(' ')}<span class="n">${n}</span></button>`; })
+    .join('');
+  document.body.classList.toggle('songs-view', view === 'songs');
+  document.body.classList.toggle('finds-view', view in FINDS);
+  const viewName = view === 'videos' ? 'Videos' : view === 'songs' ? 'Songs' : FINDS[view].label.replace(/^\S+ /, '') + ' finds';
+  const folder = $('#folder').value;
+  const sub = view !== 'videos' ? '' : [TABS.find((t) => t[0] === tab)[1], folder === 'all' ? '' : FOLDER_NAME[folder]].filter(Boolean).join(' · ');
+  $('#crumb').innerHTML = `${viewName}${sub ? `<span class="sub"> / ${esc(sub)}</span>` : ''}`;
+}
+
+// Sidebar folders, with counts that respect the archive and "where it's posted" filters.
+function renderFolders() {
+  const showArchive = $('#showArchive').checked;
+  const pool = videos.filter((v) => (showArchive || !v.archived) && whereTest(v));
+  const cur = $('#folder').value;
+  const keys = ['all', ...SUBJECT_KEYS, ...['generations', 'content'].filter((k) => pool.some((v) => v.folder === k))];
+  $('#folders').innerHTML = keys.map((k) => `<button class="navitem ${cur === k ? 'active' : ''}" data-folder="${k}"${cur === k && view === 'videos' ? ' aria-current="page"' : ''}>
+    <span class="ic">${k === 'all' ? '▦' : '▸'}</span>${k === 'all' ? 'All folders' : FOLDER_NAME[k]}
+    <span class="n">${k === 'all' ? pool.length : pool.filter((v) => v.folder === k).length}</span></button>`).join('');
+}
+
+// "🔗 Source" row: the link a video (or a finds clip) came from, with Copy.
+let editingSrc = null; // id of the video whose source link is being edited
+function srcRow(url, editable) {
+  const short = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\?.*$/, '');
+  return `<div class="srcrow"><span class="lbl">🔗 Source</span>
+    <a class="srclink" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(url)}">${esc(short)}</a>
+    <button class="copy" data-copy="${esc(url)}">Copy link</button>
+    ${editable ? '<button data-act="editsrc">Edit</button>' : ''}</div>`;
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  // Fallback when the clipboard API is blocked (e.g. page not focused).
+  const ta = Object.assign(document.createElement('textarea'), { value: text });
+  ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.append(ta); ta.select();
+  const ok = document.execCommand('copy'); ta.remove();
+  return ok;
+}
+
+async function saveSrc(el) {
+  if (!editingSrc) return;
+  const v = videos.find((x) => x.id === el.closest('.card').dataset.id);
+  editingSrc = null;
+  const url = el.value.trim();
+  if (v && url !== v.sourceUrl) {
+    if (url && !/^https?:\/\/\S+$/.test(url)) { alert('That doesn\'t look like a link (it should start with https://).'); return render(); }
+    const old = v.sourceUrl;
+    v.sourceUrl = url;
+    const r = await api('/api/label', { id: v.id, sourceUrl: url });
+    if (r.error) { v.sourceUrl = old; alert('Not saved: ' + r.error); }
+  }
+  renderSoon();
+}
+
+document.addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-copy]');
+  if (c) {
+    const ok = await copyText(c.dataset.copy);
+    c.textContent = ok ? 'Copied ✓' : 'Copy failed';
+    setTimeout(() => { c.textContent = 'Copy link'; }, 1500);
+    return;
+  }
+  const ed = e.target.closest('[data-act=editsrc]');
+  if (!ed) return;
+  editingSrc = ed.closest('.card').dataset.id;
+  render();
+  const inp = document.querySelector('input[data-role=src]');
+  if (inp) { inp.focus(); inp.select(); }
+});
+document.addEventListener('focusout', (e) => { if (e.target.dataset?.role === 'src') saveSrc(e.target); });
+document.addEventListener('keydown', (e) => {
+  if (e.target.dataset?.role !== 'src') return;
+  if (e.key === 'Enter') { e.preventDefault(); saveSrc(e.target); }
+  if (e.key === 'Escape') { editingSrc = null; render(); }
+});
+
+// Clips with a local copy (in the section's folder) play from the app; the rest are YouTube links.
+const PLATFORMS = { youtube: 'YouTube', tiktok: 'TikTok', kick: 'Kick', x: 'X', instagram: 'Instagram' };
+const findUrl = (c, kind) => `/find?s=${view}&id=${encodeURIComponent(c.id)}&kind=${kind}`;
+const isWide = (c) => c.wide || c.platform === 'kick';
+const fmtViews = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n));
+
+function renderFinds() {
+  const q = $('#q').value.trim().toLowerCase();
+  const shown = finds[view].filter((c) => !q || `${c.title} ${c.show} ${c.note}`.toLowerCase().includes(q));
+  $('#grid').innerHTML = shown.length ? `<div class="grid" style="grid-column:1/-1">${shown.map((c) => `
+    <div class="card find ${view}" data-find="${esc(c.id)}"><span class="tag">${c.ease ? `${esc(c.ease)}${/snip/.test(c.ease) ? '' : ' swap'} · ` : ''}Not a generation</span>
+      <button class="thumb${isWide(c) ? ' wide' : ''}" data-play="${esc(c.id)}" style="background-image:url(${c.file ? findUrl(c, 'thumb') : `https://i.ytimg.com/vi/${esc(c.id)}/hqdefault.jpg`})" aria-label="Play ${esc(c.title || 'clip')}"></button>
+      <div class="body"><div class="name">${esc(c.title)}</div>
+        <div class="meta">${esc(c.show)} · ${mmss(c.seconds)}${c.views ? ` · ${fmtViews(c.views)} views` : ''}</div>
+        ${c.note ? `<div class="meta findnote">${esc(c.note)}</div>` : ''}
+        ${srcRow(c.url)}
+        <div class="actions"><a class="dlbtn" href="${esc(c.url)}" target="_blank" rel="noopener">Open on ${PLATFORMS[c.platform || 'youtube'] || 'site'}</a>
+          <button class="trash" data-finddel="${esc(c.id)}">Delete</button></div></div>
+    </div>`).join('')}</div>` : `<div class="empty">${q ? `No ${FINDS[view].who} clips match.` : `No ${FINDS[view].who} clips yet.`}</div>`;
+}
+
+function renderSongs() {
+  const q = $('#q').value.trim().toLowerCase();
+  const shown = songs.filter((s) => !q || s.name.toLowerCase().includes(q) || s.note.toLowerCase().includes(q));
+  $('#grid').innerHTML = shown.length ? byDay(shown, (s) => s.modified, songCard, 'song')
+    : q ? '<div class="empty">No songs match.</div>' : '<div class="empty">No songs yet. Songs go in ${esc(songsDir)}.</div>';
+}
+
+function songCard(s) {
+  const id = encodeURIComponent(s.id);
+  const byId = Object.fromEntries(videos.map((v) => [v.id, v]));
+  const unused = videos.filter((v) => !s.usedIn.includes(v.id));
+  return `<div class="card song" data-song="${esc(s.id)}">
+    <div class="body">
+      <div class="art"><div class="icon">🎵</div>
+        <div><div class="name">${esc(s.name.replace(/\.[^.]+$/, ''))}</div>
+        <div class="meta">${mmss(s.duration)} · ${mb(s.size)} · added ${date(s.modified)}</div></div></div>
+      <audio src="/video?id=${id}" preload="none" controls></audio>
+      <div class="used"><span class="lbl">Used in:</span>
+        ${s.usedIn.map((vid) => `<span class="chip"><a href="#" data-goto="${esc(vid)}">${esc(byId[vid]?.name || vid)}</a>
+          <button data-unuse="${esc(vid)}" title="Remove">×</button></span>`).join('') || '<span class="lbl">nothing yet</span>'}
+        <select data-role="use"><option value="">+ Add video…</option>
+          ${unused.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join('')}</select>
+      </div>
+      <textarea placeholder="Notes (vibe, which videos it fits…)">${esc(s.note)}</textarea>
+      <div class="actions"><a class="dlbtn" href="/video?id=${id}&download=1" download>⬇ Download</a>
+        <button data-act="reveal">Show in Finder</button></div>
+    </div>
+  </div>`;
+}
+
+async function setUsedIn(s, usedIn) {
+  const old = s.usedIn;
+  s.usedIn = usedIn;
+  const r = await api('/api/label', { id: s.id, usedIn });
+  if (r.error) { s.usedIn = old; alert('Not saved: ' + r.error); }
+  render();
+}
+
+function visible() {
+  const folder = $('#folder').value;
+  const showArchive = $('#showArchive').checked;
+  $('#archN').textContent = videos.filter((v) => v.archived).length;
+  return videos.filter((v) => (showArchive || !v.archived) && (folder === 'all' || v.folder === folder) && whereTest(v)
+    && (fPost === 'all' || postState(v) === fPost) && dateTest(v));
+}
+
+function renderTabs(list) {
+  const tabs = TABS.map(([k, label, c, test]) => [k, label, list.filter(test).length, c]);
+  $('#tabs').innerHTML = tabs.map(([k, label, n, c]) =>
+    `<button class="navitem ${tab === k ? 'active' : ''}" data-tab="${k}"${tab === k && view === 'videos' ? ' aria-current="page"' : ''}>
+       <span class="ic"><span class="dot" style="background:${c}"></span></span>${label}<span class="n">${n}</span></button>`).join('');
+}
+
+function render() {
+  // Sidebar buttons are redrawn on every render: keep keyboard focus on the same one.
+  const f = document.activeElement, nav = f && f.dataset && ['view', 'tab', 'folder'].find((k) => f.dataset[k] !== undefined);
+  const navSel = nav && `[data-${nav}="${CSS.escape(f.dataset[nav])}"]`;
+  renderViews();
+  renderFolders();
+  renderGrid();
+  renderFilters();
+  renderSelbar();
+  renderReview();
+  // The status tabs belong to the Videos page: elsewhere none of them is the current page.
+  if (view !== 'videos') document.querySelectorAll('#tabs [aria-current]').forEach((b) => b.removeAttribute('aria-current'));
+  if (navSel && !document.activeElement?.matches?.(navSel)) document.querySelector(navSel)?.focus();
+}
+// While a video is open in the review panel, it keeps its place in ← / → even if a tick (Posted, Approved,
+// Archive) takes it out of the current tab or search, so "watch, tick, next" keeps working.
+function keepOpenInOrder(next) {
+  if (openId && !next.includes(openId)) {
+    const at = order.indexOf(openId);
+    next.splice(at < 0 ? next.length : Math.min(at, next.length), 0, openId);
+  }
+  return next;
+}
+
+function renderGrid() {
+  if (view === 'songs') return renderSongs();
+  if (view in FINDS) return renderFinds();
+  const q = $('#q').value.trim();
+  if (q) return renderSearch(q);
+  hits = new Map();
+  const list = visible();
+  renderTabs(list);
+  const shown = list.filter(TABS.find((t) => t[0] === tab)[3]).sort((a, b) => (sortDir === 'old' ? dateOf(a) - dateOf(b) : dateOf(b) - dateOf(a)));
+  order = keepOpenInOrder(shown.map((v) => v.id));
+  $('#grid').innerHTML = shown.length ? byDay(shown, dateOf, tile, 'video', 'tiles') : emptyMsg();
+}
+
+// ───────────── Grid tile → review panel ─────────────
+// The grid shows compact posters (Frame.io / Runway style). Clicking one opens the review panel:
+// original + conversion side by side on the left, every control on the right (Vimeo / Frame.io review).
+let openId = null; // id of the video open in the review panel
+let order = []; // ids in the order the grid shows them, for ← / →
+
+// A card: the clickable tile plus its checkbox (and Un-approve on the Approved tab), outside the tile's button.
+const unapproving = new Set();
+function tile(v) {
+  const on = selected.has(v.id), busy = unapproving.has(v.id);
+  return `<div class="tilewrap ${on ? 'picked' : ''}">
+    <button type="button" class="sel" role="checkbox" aria-checked="${on}" data-sel="${esc(v.id)}" aria-label="Select ${esc(v.name)}">${on ? '✓' : ''}</button>
+    ${tileButton(v)}
+    ${tab === 'approved' && v.approved ? `<div class="tacts"><button type="button" class="mini" data-unapprove="${esc(v.id)}"${busy ? ' disabled' : ''}>${busy ? '<span class="spin" aria-hidden="true"></span> Un-approving…' : 'Un-approve'}</button></div>` : ''}
+  </div>`;
+}
+function tileButton(v) {
+  const id = encodeURIComponent(v.id);
+  const h = hits.get(v.id);
+  const pills = [v.status === 'delete' ? '<span class="pill del">Delete</span>' : '',
+    v.approved ? '<span class="pill appr">✓ Approved</span>' : '',
+    v.posted ? '<span class="pill posted">Posted</span>' : ''].join('');
+  const flags = [!v.originalExists ? `<span class="pill warn">${v.original ? 'Original missing' : 'No original'}</span>` : '',
+    v.flagged ? '<span class="pill warn">⚠ Flagged</span>' : '',
+    v.posts.length ? `<span class="pill">📣 ${v.posts.length}</span>` : ''].join('');
+  return `<button class="tile ${v.archived ? 'archived' : ''} ${v.status === 'delete' ? 'del' : ''}" data-open="${esc(v.id)}">
+    <div class="poster"><img class="main" src="/thumb?id=${id}" loading="lazy" alt="">
+      ${v.originalExists ? `<img class="pip" src="/thumb?id=${id}&which=original" loading="lazy" alt="" title="Original">` : ''}
+      <div class="ov tl"><span class="pill">${esc(FOLDER_NAME[v.folder] || v.folder)}</span></div>
+      <div class="ov tr">${pills}</div>
+      <div class="ov br">${flags}</div>
+      <span class="play">▶</span></div>
+    <div class="tinfo"><div class="tname">${h?.nameHtml || esc(v.name.replace(/\.[^.]+$/, ''))}</div>
+      ${v.description ? `<div class="tdesc">${h?.descHtml || esc(v.description)}</div>` : ''}
+      ${h?.snippet ? `<div class="hit"><span class="where">Matched in ${h.snippetWhere}</span>${h.snippet}</div>` : ''}
+      <div class="tmeta">${v.archived ? 'Archived · ' : ''}${new Date(v.made).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · ${mb(v.size)}</div></div>
+  </button>`;
+}
+
+function renderReview() {
+  const el = $('#review');
+  const v = openId && videos.find((x) => x.id === openId);
+  if (!v || view !== 'videos') {
+    if (!v) openId = null;
+    el.hidden = true; el.innerHTML = ''; el.dataset.key = '';
+    document.body.classList.remove('reviewing');
+    return;
+  }
+  document.body.classList.add('reviewing');
+  el.hidden = false;
+  const id = encodeURIComponent(v.id);
+  // Only rebuild the players when the video or its original changes, so ticking Posted mid-playback doesn't stop it.
+  const key = `${v.id}|${v.original}|${v.originalExists}`;
+  if (el.dataset.key !== key) {
+    el.innerHTML = `<div class="rv-backdrop" data-close></div>
+      <div class="card rv" data-id="${esc(v.id)}">
+        <div class="rv-head"></div>
+        <div class="rv-body">
+          <div class="rv-media">
+            <div class="vside">${originalSide(v, id)}</div>
+            <div class="vside"><span class="tag">Conversion</span>
+              <video data-role="conv" src="/video?id=${id}" poster="/thumb?id=${id}" preload="metadata" controls playsinline></video></div>
+          </div>
+          <div class="rv-info"></div>
+        </div>
+      </div>`;
+    el.dataset.key = key;
+  }
+  const c = STATUS[v.status]?.color || (v.posted ? 'var(--posted)' : v.approved ? 'var(--approved)' : 'var(--unposted)');
+  el.querySelector('.rv').style.setProperty('--c', c);
+  const i = order.indexOf(v.id);
+  el.querySelector('.rv-head').innerHTML = `
+    <div class="rv-title"><div class="name">${hits.get(v.id)?.nameHtml || esc(v.name)}</div>
+      <div class="meta">${v.archived ? 'Archived · ' : ''}${FOLDER_NAME[v.folder]} · ${mb(v.size)} · ${v.made !== v.modified
+        ? new Date(v.made).toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' (date from file name)'
+        : date(v.made)}</div></div>
+    ${i >= 0 ? `<span class="rv-pos">${i + 1} / ${order.length}</span>` : ''}
+    <button class="iconbtn" data-nav="-1" title="Previous (←)" ${i <= 0 ? 'disabled' : ''}>‹</button>
+    <button class="iconbtn" data-nav="1" title="Next (→)" ${i < 0 || i >= order.length - 1 ? 'disabled' : ''}>›</button>
+    <button class="iconbtn" data-close title="Close (Esc)">✕</button>`;
+  const info = el.querySelector('.rv-info');
+  // Keep your place: the focused control and any opened "What's said" survive the redraw.
+  // Same kind of control (data-act, -status, -role, -pick, -copy) at the same position among its kind,
+  // so focus stays on the right row's button (e.g. the × of the 2nd post, not the 1st).
+  const f = document.activeElement && info.contains(document.activeElement) ? document.activeElement : null;
+  const fKey = f && ['act', 'status', 'role', 'pick', 'copy'].find((k) => f.dataset[k] !== undefined);
+  const fSel = fKey && `[data-${fKey}="${CSS.escape(f.dataset[fKey])}"]`;
+  const fIdx = fSel ? [...info.querySelectorAll(fSel)].indexOf(f) : -1;
+  const openDetails = [...info.querySelectorAll('details')].map((d) => d.open);
+  info.innerHTML = infoHtml(v);
+  info.querySelectorAll('details').forEach((d, n) => { if (openDetails[n]) d.open = true; });
+  if (fSel) (info.querySelectorAll(fSel)[fIdx] || info.querySelector(fSel))?.focus();
+}
+
+let returnFocus = null;
+function openReview(id) {
+  if (!openId) returnFocus = document.activeElement;
+  openId = id;
+  $('#review').dataset.key = '';
+  renderReview();
+  $('#review').querySelector('[data-close].iconbtn')?.focus();
+}
+function closeReview() {
+  openId = null; picking = null; addingPost = null; editingDesc = null; editingQuote = null; editingSrc = null;
+  renderReview();
+  const back = returnFocus && returnFocus.dataset?.open && document.querySelector(`.tile[data-open="${CSS.escape(returnFocus.dataset.open)}"]`);
+  (back || returnFocus)?.focus?.();
+  returnFocus = null;
+}
+// Tab stays inside the open review panel.
+document.addEventListener('keydown', (e) => {
+  const el = $('#review');
+  if (e.key !== 'Tab' || el.hidden) return;
+  const items = [...el.querySelectorAll('button:not([disabled]), [href], input, textarea, select, video[controls], [tabindex]:not([tabindex="-1"])')].filter((x) => x.offsetParent !== null);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (!el.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+function stepReview(d) {
+  const i = order.indexOf(openId);
+  if (i < 0 || !order[i + d]) return;
+  picking = null; addingPost = null;
+  openReview(order[i + d]);
+  document.querySelector(`.tile[data-open="${CSS.escape(openId)}"]`)?.scrollIntoView({ block: 'nearest' });
+}
+
+// ── Bulk select, Un-approve, filters ──
+function renderSelbar() {
+  const bar = $('#selbar');
+  for (const id of [...selected]) if (!videos.some((v) => v.id === id)) selected.delete(id);   // gone
+  document.body.classList.toggle('selecting', selected.size > 0 && view === 'videos');
+  if (!selected.size || view !== 'videos') { bar.hidden = true; bar.innerHTML = ''; return; }
+  bar.hidden = false;
+  const html = `<span><b>${selected.size}</b> selected</span>
+    <button type="button" class="mini" data-selall>Select all ${order.length}</button>
+    <button type="button" class="mini" data-selclear>Clear</button>
+    <button type="button" class="mini trash" data-seldel${TOKEN ? '' : ' disabled title="Open the Video Studio app to delete (a browser tab is read-only)"'}>🗑 Delete permanently</button>`;
+  if (bar.__html !== html) { bar.innerHTML = html; bar.__html = html; }
+}
+function togglePick(id, range) {
+  if (range && lastPicked && order.includes(lastPicked) && order.includes(id)) {
+    const [a, b] = [order.indexOf(lastPicked), order.indexOf(id)].sort((x, y) => x - y);
+    const turnOn = !selected.has(id);
+    for (const x of order.slice(a, b + 1)) turnOn ? selected.add(x) : selected.delete(x);
+  } else if (selected.has(id)) selected.delete(id); else selected.add(id);
+  lastPicked = id;
+  render();
+}
+function deleteDialog() {
+  const dlg = $('#delDlg'), list = videos.filter((v) => selected.has(v.id));
+  const size = list.reduce((n, v) => n + (v.size || 0), 0);
+  dlg.innerHTML = `<h2 id="delTitle">Delete ${list.length} video${list.length === 1 ? '' : 's'} permanently?</h2>
+    <p class="warn">This can't be undone: the files are erased (not moved to the Trash) and their cards are removed, with their descriptions, X quotes and posting records.</p>
+    <ul>${list.slice(0, 40).map((v) => `<li>${esc(v.name)} <span style="color:var(--dim)">· ${FOLDER_NAME[v.folder] || v.folder}</span></li>`).join('')}${list.length > 40 ? `<li>…and ${list.length - 40} more</li>` : ''}</ul>
+    <p>${mb(size)} in all. Their source clips in originals/ are kept.</p>
+    <div id="delOut" role="status"></div>
+    <div class="row"><button type="button" class="mini" data-delcancel>Cancel</button><button type="button" class="mini danger" data-delgo>Delete ${list.length} video${list.length === 1 ? '' : 's'} forever</button></div>`;
+  dlg.showModal();
+  dlg.querySelector('[data-delcancel]').focus();
+}
+async function runDelete(btn) {
+  const dlg = $('#delDlg'), ids = [...selected], cancel = dlg.querySelector('[data-delcancel]');
+  btn.disabled = true; cancel.disabled = true; dlg.dataset.busy = '1';
+  btn.innerHTML = `<span class="spin" aria-hidden="true"></span> Deleting ${ids.length} video${ids.length === 1 ? '' : 's'}…`;
+  let r;
+  try {
+    const res = await fetch('/api/videos/delete-forever', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Token': TOKEN }, body: JSON.stringify({ ids }) });
+    r = await res.json().catch(() => ({})); if (!res.ok) r = { error: r.error || 'HTTP ' + res.status };
+  } catch { r = { error: 'The library server is not answering.' }; }
+  delete dlg.dataset.busy;
+  const out = dlg.querySelector('#delOut');
+  if (r.error) { out.innerHTML = `<p class="bad">Nothing was deleted: ${esc(r.error)}</p>`; btn.disabled = false; cancel.disabled = false; btn.textContent = 'Try again'; return; }
+  const failed = r.results.filter((x) => !x.ok);
+  for (const x of r.results) if (x.ok) selected.delete(x.id);
+  videos = videos.filter((v) => !r.results.some((x) => x.ok && x.id === v.id));
+  if (openId && !videos.some((v) => v.id === openId)) openId = null;
+  out.innerHTML = `<p class="ok">Deleted ${r.deleted} video${r.deleted === 1 ? '' : 's'}.</p>` +
+    (failed.length ? `<p class="bad">Not deleted (${failed.length}, still selected):</p><ul>${failed.map((x) => `<li>${esc(x.id)}: ${esc(x.error)}</li>`).join('')}</ul>` : '');
+  btn.remove(); cancel.disabled = false; cancel.textContent = 'Done'; cancel.focus();
+  lastLoad = ''; render(); load();
+}
+// While something is selected, clicking a card selects it instead of opening it (shift-click selects a range).
+document.addEventListener('click', (e) => {
+  const sel = e.target.closest('[data-sel]');
+  if (sel) { e.preventDefault(); e.stopPropagation(); return togglePick(sel.dataset.sel, e.shiftKey); }
+  const t = e.target.closest('.tile[data-open]');
+  if (t && selected.size && view === 'videos') { e.preventDefault(); e.stopPropagation(); togglePick(t.dataset.open, e.shiftKey); }
+}, true);
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.selall !== undefined) { order.forEach((id) => selected.add(id)); return render(); }
+  if (b.dataset.selclear !== undefined) { selected.clear(); return render(); }
+  if (b.dataset.seldel !== undefined) return deleteDialog();
+  if (b.dataset.delcancel !== undefined) return $('#delDlg').close();
+  if (b.dataset.delgo !== undefined) return runDelete(b);
+  if (b.dataset.fpost) { fPost = b.dataset.fpost; store.set('post', fPost); return render(); }
+  if (b.dataset.fdate) { fDate = b.dataset.fdate; store.set('date', fDate); return render(); }
+  if (b.dataset.fclear !== undefined) { fPost = 'all'; fDate = 'all'; store.set('post', fPost); store.set('date', fDate); return go({ folder: 'all' }); }
+  if (b.dataset.unapprove) {
+    const v = videos.find((x) => x.id === b.dataset.unapprove); if (!v) return;
+    unapproving.add(v.id); render();
+    saveFlag(v, 'approved', false, { approvedAt: null }).finally(() => { unapproving.delete(v.id); render(); });
+  }
+});
+document.addEventListener('change', (e) => { if (e.target.id === 'sortDir') { sortDir = e.target.value; store.set('sort', sortDir); render(); } });
+$('#delDlg').addEventListener('cancel', (e) => { if ($('#delDlg').dataset.busy) e.preventDefault(); });   // not while deleting
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && selected.size && !$('#delDlg').open && $('#review').hidden && e.target.id !== 'q') { selected.clear(); render(); }
+});
+loadBuffer(); setInterval(loadBuffer, 5 * 60e3);
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-open], [data-close], [data-nav], [data-folder]');
+  if (!t) return;
+  if (t.dataset.open) return openReview(t.dataset.open);
+  if (t.dataset.nav) return stepReview(+t.dataset.nav);
+  if (t.dataset.folder) return go({ folder: t.dataset.folder });
+  if ('close' in t.dataset) closeReview();
+});
+document.addEventListener('keydown', (e) => {
+  if (!openId || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeReview(); }
+  else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target.tagName !== 'VIDEO') {
+    e.preventDefault(); stepReview(e.key === 'ArrowRight' ? 1 : -1);
+  }
+});
+
+// ───────────── Search engine ─────────────
+// Every word must match somewhere (name, description, what's said, original file, song, flag note,
+// date…). Matching is forgiving: plurals, prefixes ("swa"), typos ("swpa"), character nicknames
+// (ALIASES below). Words like "posted", "today", "flagged" act as filters.
+const norm = (s) => (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+const tokenize = (s) => norm(s).match(/[a-z0-9]+/g) || [];
+const stem = (w) => w.length > 4 ? w.replace(/(ing|ed|es|s)$/, '') : w.replace(/s$/, '');
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Words that mean the same thing here (common video words; add your characters' nicknames).
+const ALIASES = [
+  ['compilation', 'montage', 'stitched', 'stitch', 'compile', 'mashup'],
+  ['swap', 'swapped', 'faceswap', 'replace', 'replaced'],
+  ['song', 'music', 'audio', 'sound', 'track'],
+  ['money', 'rich', 'cash', 'millionaire', 'dollar', 'dollars', 'wealth'],
+  ['woman', 'women', 'girl', 'girls', 'female', 'females'],
+  ['car', 'cars', 'lambo', 'bugatti', 'ferrari', 'driving'],
+  ['podcast', 'mic', 'microphone', 'interview'],
+  ['funny', 'joke', 'meme', 'lol'],
+];
+const aliasOf = new Map();
+for (const g of ALIASES) for (const w of g) aliasOf.set(w, g);
+
+function editDistance(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  // Damerau-Levenshtein: a swap of two neighbouring letters ("melno") counts as one typo.
+  let prev2 = null;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (prev2 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], prev2[j - 2] + 1);
+      best = Math.min(best, cur[j]);
+    }
+    if (best > max) return max + 1;
+    prev2 = prev;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// How well one query word matches one word in a video (0 = no match).
+function wordScore(term, tok) {
+  if (tok === term) return 1;
+  const st = stem(term);
+  if (stem(tok) === st) return 0.95;
+  if (aliasOf.get(term)?.includes(tok) || aliasOf.get(st)?.includes(stem(tok))) return 0.8;
+  if (term.length >= 2 && tok.startsWith(term)) return 0.75;
+  if (term.length >= 4 && tok.includes(term)) return 0.55;
+  if (term.length >= 4 && !/^\d+$/.test(term)) {
+    const d = editDistance(term, tok, term.length >= 7 ? 2 : 1);
+    if (d <= (term.length >= 7 ? 2 : 1)) return 0.5;
+  }
+  return 0;
+}
+
+const FIELD_WEIGHT = { name: 3, description: 3, said: 1.6, song: 2, original: 1.5, source: 1.5, posts: 1.5, flag: 1, when: 1, folder: 0.8 };
+const FIELD_LABEL = { said: "what's said", song: 'song', original: 'original file', source: 'source link', posts: 'post caption', flag: 'flag note', when: 'date', folder: 'folder' };
+
+const fieldCache = new Map();
+function fieldsOf(v) {
+  const key = `${v.id}|${v.description}|${v.transcript?.length}|${v.songs.join()}|${v.original}|${v.sourceUrl}|${JSON.stringify(v.posts)}`;
+  if (fieldCache.get(v.id)?.key === key) return fieldCache.get(v.id).fields;
+  const d = new Date(v.made);
+  const text = {
+    name: v.name.replace(/\.[^.]+$/, ''),
+    description: v.description,
+    said: v.transcript || '',
+    song: v.songs.join(' · '),
+    original: v.original ? v.original.split('/').pop().replace(/\.[^.]+$/, '') : '',
+    source: (v.sourceUrl || '').replace(/^https?:\/\/(www\.)?/, '').replace(/[/?=&._-]+/g, ' '),
+    posts: v.posts.map((p) => `${accounts[p.account] || p.account} ${p.caption || ''}`).join(' · '),
+    flag: v.flagged || '',
+    when: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) + ' '
+      + d.toLocaleDateString('en-US', { month: 'short' }),
+    folder: FOLDER_NAME[v.folder] || v.folder,
+  };
+  const fields = Object.fromEntries(Object.entries(text).map(([f, t]) => [f, { text: t, toks: [...new Set(tokenize(t))] }]));
+  fieldCache.set(v.id, { key, fields });
+  return fields;
+}
+
+// Pull filter words and "phrases" / -exclusions out of the query.
+function parseQuery(q) {
+  let rest = ' ' + norm(q) + ' ';
+  const phrases = [];
+  rest = rest.replace(/"([^"]+)"/g, (_, p) => { phrases.push(tokenize(p).join(' ')); return ' '; });
+  const exclude = [];
+  rest = rest.replace(/\s-([a-z0-9]+)/g, (_, w) => { exclude.push(w); return ' '; });
+  const filters = [];
+  const today = new Date().setHours(0, 0, 0, 0);
+  const daysAgo = (v) => Math.round((today - new Date(v.made).setHours(0, 0, 0, 0)) / 864e5);
+  const take = (re, test) => { if (re.test(rest)) { filters.push(test); rest = rest.replace(re, ' '); } };
+  take(/\s(not posted|unposted|never posted)\s/, (v) => !v.posted);
+  take(/\sposted\s/, (v) => v.posted);
+  take(/\s(not approved|unapproved|in progress)\s/, (v) => !v.approved);
+  take(/\sapproved\s/, (v) => v.approved);
+  take(/\s(archived|archive|old)\s/, (v) => v.archived);
+  take(/\sflagged\s/, (v) => !!v.flagged);
+  take(/\s(no original|missing original)\s/, (v) => !v.originalExists);
+  take(/\sto delete\s/, (v) => v.status === 'delete');
+  take(/\stoday\s/, (v) => daysAgo(v) === 0);
+  take(/\syesterday\s/, (v) => daysAgo(v) === 1);
+  take(/\sthis week\s/, (v) => daysAgo(v) < 7);
+  return { terms: [...new Set(tokenize(rest))], phrases, exclude, filters };
+}
+
+function search(q, list) {
+  const { terms, phrases, exclude, filters } = parseQuery(q);
+  const scored = [];
+  for (const v of list) {
+    if (!filters.every((f) => f(v))) continue;
+    const F = fieldsOf(v);
+    if (exclude.some((x) => Object.values(F).some((f) => f.toks.some((t) => t === x || t.startsWith(x))))) continue;
+    if (!phrases.every((p) => Object.values(F).some((f) => f.toks.join(' ').includes(p)))) continue;
+    let score = 0, matched = 0;
+    const marks = {}; // field -> Set of matched words, for highlighting
+    const where = {}; // field -> best score, to pick the snippet
+    for (const term of terms) {
+      let best = 0;
+      for (const [f, { toks }] of Object.entries(F)) {
+        for (const tok of toks) {
+          const m = wordScore(term, tok);
+          if (!m) continue;
+          (marks[f] ||= new Set()).add(tok);
+          const w = m * FIELD_WEIGHT[f];
+          where[f] = Math.max(where[f] || 0, w);
+          best = Math.max(best, w);
+        }
+      }
+      if (best) { matched++; score += best; }
+    }
+    for (const p of phrases) {
+      score += 4;
+      for (const [f, fld] of Object.entries(F)) if (fld.toks.join(' ').includes(p)) p.split(' ').forEach((w) => (marks[f] ||= new Set()).add(w));
+    }
+    // Bonus when the words appear together, in order, in one field.
+    if (terms.length > 1) {
+      const joined = terms.join(' ');
+      if (Object.values(F).some((f) => f.toks.join(' ').includes(joined))) score += 2;
+    }
+    if (terms.length && !matched) continue;
+    scored.push({ v, score, matched, marks, where });
+  }
+  const need = terms.length;
+  let results = scored.filter((r) => r.matched === need);
+  const partial = !results.length && need > 1;
+  if (partial) results = scored.filter((r) => r.matched > 0);
+  results.sort((a, b) => b.matched - a.matched || b.score - a.score || b.v.made - a.v.made);
+  return { results: results.map(decorate), partial };
+}
+
+// Highlighted HTML for a hit: name, description, a snippet from the best other field.
+function mark(text, words) {
+  if (!words || !words.size) return esc(text);
+  const re = new RegExp(`(^|[^a-z0-9])(${[...words].sort((a, b) => b.length - a.length).map(escRe).join('|')})`, 'gi');
+  // Match on the plain text, then escape the pieces, so HTML entities never get split.
+  let out = '', last = 0;
+  for (const m of text.matchAll(re)) {
+    const start = m.index + m[1].length;
+    out += esc(text.slice(last, start)) + '<mark>' + esc(m[2]) + '</mark>';
+    last = start + m[2].length;
+  }
+  return out + esc(text.slice(last));
+}
+
+function snippetOf(text, words, size = 170) {
+  const re = new RegExp(`(^|[^a-z0-9])(${[...words].map(escRe).join('|')})`, 'i');
+  const m = text.match(re);
+  const at = m ? m.index + m[1].length : 0;
+  let start = Math.max(0, at - 60);
+  if (start > 0) start = text.indexOf(' ', start) + 1;
+  let end = Math.min(text.length, start + size);
+  if (end < text.length) end = text.lastIndexOf(' ', end);
+  return (start > 0 ? '…' : '') + mark(text.slice(start, end), words) + (end < text.length ? '…' : '');
+}
+
+function decorate(r) {
+  const F = fieldsOf(r.v);
+  const out = { ...r, nameHtml: mark(r.v.name, r.marks.name), descHtml: mark(r.v.description, r.marks.description) };
+  if (r.marks.said) out.transcriptHtml = mark(F.said.text, r.marks.said);
+  // Show where it matched, unless the name or description already shows it.
+  if (!r.marks.name && !r.marks.description) {
+    const f = Object.keys(r.where).filter((k) => FIELD_LABEL[k]).sort((a, b) => r.where[b] - r.where[a])[0];
+    if (f) { out.snippetWhere = FIELD_LABEL[f]; out.snippet = snippetOf(F[f].text, r.marks[f]); }
+  }
+  return out;
+}
+
+// Search results: best match first. Searches the archive too, but keeps it in its own section.
+let archiveOpen = false;
+function renderSearch(q) {
+  const folder = $('#folder').value;
+  const inFolder = videos.filter((v) => (folder === 'all' || v.folder === folder) && whereTest(v));
+  const { results, partial } = search(q, inFolder);
+  hits = new Map(results.map((r) => [r.v.id, r]));
+  const tabTest = TABS.find((t) => t[0] === tab)[3];
+  const fresh = results.filter((r) => !r.v.archived);
+  renderTabs(fresh.map((r) => r.v));
+  const main = fresh.filter((r) => tabTest(r.v));
+  const old = results.filter((r) => r.v.archived && tabTest(r.v));
+  const showOld = archiveOpen || $('#showArchive').checked;
+  // What the transcriber is actually working on (not every video without a transcript: some can't be done).
+  const pending = transcribeStatus ? (transcribeStatus.current ? 1 : 0) + transcribeStatus.waiting : 0;
+  let html = `<div class="searchinfo" role="status"><span><b>${main.length}</b> result${main.length === 1 ? '' : 's'} for “${esc(q)}”${
+    partial ? ' · <i>no video matched every word, showing closest matches</i>' : ''}</span>
+    ${pending ? `<span>· still transcribing ${pending} video${pending === 1 ? '' : 's'}…</span>` : ''}
+    <span class="tip">Tips: <code>"exact phrase"</code> <code>-exclude</code> <code>posted</code> <code>today</code> · Esc clears</span></div>`;
+  order = keepOpenInOrder([...main, ...(showOld ? old : [])].map((r) => r.v.id));
+  html += main.length ? `<div class="grid tiles">${main.map((r) => tile(r.v)).join('')}</div>`
+    : '<div class="empty">No new videos match.</div>';
+  if (old.length) {
+    html += showOld
+      ? `<section><h2 class="day">In the archive<span class="n">${old.length} video${old.length === 1 ? '' : 's'}</span></h2>
+          <div class="grid tiles">${old.map((r) => tile(r.v)).join('')}</div></section>`
+      : `<div class="moreArchive"><button class="btn" data-act="openArchive">Show ${old.length} match${old.length === 1 ? '' : 'es'} in the archive</button></div>`;
+  }
+  $('#grid').innerHTML = html;
+}
+
+function emptyMsg() {
+  const n = videos.filter((v) => !v.archived).length;
+  if (!$('#showArchive').checked && !n && !$('#q').value) {
+    return `<div class="empty">No new videos yet.<br>New videos saved in this folder's ${SUBJECT_KEYS.map((k) => esc(FOLDER_NAME[k]) + '/').join(', ')} show up here.<br>
+      Turn on <b>Archive</b> at the top to see the ${videos.length} older ones.</div>`;
+  }
+  if (fPost !== 'all' || fDate !== 'all') return '<div class="empty">No videos match these filters. <button class="chip" data-fclear>Clear filters</button></div>';
+  if (tab === 'approved') return '<div class="empty">Nothing approved here yet. A video gets ✅ Approved when you OK it (tick Approved in its panel).</div>';
+  return '<div class="empty">No videos here.</div>';
+}
+
+// Group items (already newest first) under one header per calendar day.
+function byDay(items, when, render, noun, gridClass = '') {
+  const groups = [];
+  for (const it of items) {
+    const d = new Date(when(it));
+    const key = d.toDateString();
+    if (groups.at(-1)?.key !== key) groups.push({ key, d, items: [] });
+    groups.at(-1).items.push(it);
+  }
+  return groups.map((g) => `<section>
+    <h2 class="day">${dayName(g.d)}
+      <span class="n">${g.items.length} ${noun}${g.items.length === 1 ? '' : 's'}</span></h2>
+    <div class="grid ${gridClass}">${g.items.map(render).join('')}</div></section>`).join('');
+}
+
+function dayName(d) {
+  const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 864e5);
+  const full = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  if (days === 0 || days === 1) return `${days ? 'Yesterday' : 'Today'}<span class="sub">${full}</span>`;
+  return full;
+}
+
+// Day headers stick just under the main header.
+new ResizeObserver(([e]) => document.documentElement.style.setProperty('--head', e.target.offsetHeight + 'px'))
+  .observe(document.querySelector('header'));
+
+// Right-hand column of the review panel: every control the old grid cards had.
+function infoHtml(v) {
+  const id = encodeURIComponent(v.id);
+  const h = hits.get(v.id);
+  return `
+      <div class="row">
+        <button class="check ${v.posted ? 'on' : ''}" data-act="posted" aria-pressed="${v.posted}"><span class="box">${v.posted ? '✓' : ''}</span>Posted</button>
+        <button class="check appr ${v.approved ? 'on' : ''}" data-act="approved" aria-pressed="${v.approved}" title="${v.approvedAt ? 'Approved ' + date(v.approvedAt) : 'Mark finished and approved'}"><span class="box">${v.approved ? '✓' : ''}</span>Approved</button>
+        <div class="status">${Object.entries(STATUS).map(([k, s]) => k === 'delete' && armedDelete === v.id
+          ? `<button style="--c:${s.color}" class="on" data-status="${k}">Click again → Trash</button>`
+          : `<button style="--c:${s.color}" class="${v.status === k ? 'on' : ''}" data-status="${k}">${s.label}</button>`).join('')}</div>
+      </div>
+      ${v.flagged ? `<div class="flag">⚠ Flagged: ${esc(v.flagged)}</div>` : ''}
+      <div class="sect">Description</div>
+      ${descHtml(v)}
+      ${h?.snippet ? `<div class="hit"><span class="where">Matched in ${h.snippetWhere}</span>${h.snippet}</div>` : ''}
+      ${quoteHtml(v)}
+      ${whereHtml(v)}
+      ${v.transcript ? `<details class="said" ${h?.transcriptHtml ? 'open' : ''}><summary>💬 What's said</summary><p>${h?.transcriptHtml || esc(v.transcript)}</p></details>` : ''}
+      <div class="sect">Source &amp; files</div>
+      ${editingSrc === v.id
+        ? `<div class="srcrow"><span class="lbl">🔗 Source</span><input data-role="src" value="${esc(v.sourceUrl)}" placeholder="Paste the X / YouTube / TikTok link"></div>`
+        : v.sourceUrl ? srcRow(v.sourceUrl, true)
+        : '<div class="srcrow"><span class="add" data-act="editsrc" role="button" tabindex="0">+ Add source link</span></div>'}
+      ${v.original ? `<div class="origname">Original: ${esc(v.original.replace(/^\/Users\/[^/]+/, '~'))}</div>` : ''}
+      ${picking === v.id ? pickerHtml() : ''}
+      <div class="dl">
+        ${v.originalExists ? `<a class="dlbtn" href="/video?id=${id}&which=original&download=1" download>⬇ Original</a>` : '<span></span>'}
+        <a class="dlbtn" href="/video?id=${id}&download=1" download>⬇ Conversion</a>
+      </div>
+      <div class="actions">
+        ${v.originalExists && !v.originalIsImage ? '<button data-act="both">▶ Play both</button>' : ''}
+        <button data-act="pick">${v.original ? 'Change original' : 'Set original'}</button>
+        <button data-act="reveal">Show in Finder</button>
+        <button data-act="archive">${v.archived ? 'Unarchive' : 'Archive'}</button>
+      </div>`;
+}
+
+let editingDesc = null; // id of the video whose description is being edited
+function descHtml(v) {
+  if (editingDesc === v.id) {
+    return `<textarea class="desc-edit" data-role="desc" placeholder="Who's in it, what happens, the caption, the vibe…">${esc(v.description)}</textarea>`;
+  }
+  if (!v.description) return '<div class="desc empty-desc" data-act="editdesc" role="button" tabindex="0">+ Add a description</div>';
+  return `<div class="desc" data-act="editdesc" role="button" tabindex="0" aria-label="Edit description" title="Click to edit">${hits.get(v.id)?.descHtml || esc(v.description)}</div>`;
+}
+
+async function saveDesc(el) {
+  if (!editingDesc) return; // already saved (Enter, then the blur that follows)
+  const v = videos.find((x) => x.id === el.closest('.card').dataset.id);
+  editingDesc = null;
+  if (v && el.value.trim() !== v.description) {
+    const old = v.description;
+    v.description = el.value.trim();
+    const r = await api('/api/label', { id: v.id, description: v.description });
+    if (r.error) { v.description = old; alert('Description not saved: ' + r.error); }
+  }
+  renderSoon();
+}
+
+// X quote: a ready-to-post line written from the video's audio. Copy pastes it straight into X.
+let editingQuote = null; // id of the video whose quote is being edited
+function quoteHtml(v) {
+  const n = [...v.xQuote].length;
+  const count = `<span class="count ${n > 280 ? 'over' : ''}">${n}/280</span>`;
+  if (editingQuote === v.id) {
+    return `<div class="xq"><div class="xq-head">𝕏 Quote · ⌘↵ to save, Esc to cancel ${count}</div>
+      <textarea data-role="quote" placeholder="Short lines, one idea each, ends on a punchline…">${esc(v.xQuote)}</textarea></div>`;
+  }
+  if (!v.xQuote) {
+    return `<div class="xq empty"><div class="xq-head">𝕏 Quote <button data-act="editquote">+ Add</button></div>
+      <p>No X quote yet. Claude writes one from the audio when the video is made.</p></div>`;
+  }
+  return `<div class="xq"><div class="xq-head">𝕏 Quote
+      <button data-act="copyquote">Copy</button><button data-act="editquote">Edit</button>${count}</div>
+    <p>${esc(v.xQuote)}</p></div>`;
+}
+
+async function saveQuote(el) {
+  if (!editingQuote) return; // already saved (⌘↵, then the blur that follows)
+  const v = videos.find((x) => x.id === el.closest('.card').dataset.id);
+  editingQuote = null;
+  if (v && el.value.trim() !== v.xQuote) {
+    const old = v.xQuote;
+    v.xQuote = el.value.trim();
+    const r = await api('/api/label', { id: v.id, xQuote: v.xQuote });
+    if (r.error) { v.xQuote = old; alert('X quote not saved: ' + r.error); }
+  }
+  renderSoon();
+}
+
+function originalSide(v, id) {
+  if (v.originalExists && v.originalIsImage) {
+    return `<span class="tag">Original (picture)</span>
+      <img data-role="orig-img" class="orig-img" src="/video?id=${id}&which=original" alt="Original picture" loading="lazy">`;
+  }
+  if (v.originalExists) {
+    return `<span class="tag">Original</span>
+      <video data-role="orig" src="/video?id=${id}&which=original" poster="/thumb?id=${id}&which=original"
+        preload="none" controls playsinline></video>`;
+  }
+  const msg = v.original ? 'Original file is missing<br>(moved or deleted)' : 'No original linked yet';
+  return `<div class="missing">${msg}<button class="tab" data-act="pick">Set original</button></div>`;
+}
+
+function pickerHtml() {
+  return `<div class="picker"><input data-role="find" placeholder="Search Downloads, split_out, compilation…">
+    <div class="opts">${candidateOpts('')}</div>
+    <button class="tab" data-act="unlink">Remove original link</button></div>`;
+}
+
+function candidateOpts(q) {
+  if (!candidates) return '<div class="opt">Loading…</div>';
+  if (candidates.error) return `<div class="opt">Couldn't list files (${esc(candidates.error)}). Close and reopen to retry.</div>`;
+  q = q.toLowerCase();
+  const all = candidates.filter((c) => !q || c.name.toLowerCase().includes(q));
+  const more = all.length > 80 ? `<div class="opt">Showing 80 of ${all.length}: type to narrow it down.</div>` : '';
+  return more + all.slice(0, 80).map((c) =>
+    `<button class="opt" data-pick="${esc(c.path)}">${esc(c.name)}<small>${esc(c.dir)} · ${mb(c.size)} · ${date(c.modified)}</small></button>`
+  ).join('') || '<div class="opt">No matches</div>';
+}
+
+async function setOriginal(v, original) {
+  const r = await api('/api/label', { id: v.id, original });
+  if (r.error) return alert(r.error);
+  picking = null;
+  await load();
+}
+
+// Play original + conversion together and keep them lined up.
+function playBoth(cardEl) {
+  const o = cardEl.querySelector('video[data-role=orig]');
+  const c = cardEl.querySelector('video[data-role=conv]');
+  if (!o || !c) return;
+  if (!c.paused) { c.pause(); o.pause(); return; }
+  o.currentTime = c.currentTime;
+  o.muted = true; // hear the conversion; unmute the original yourself to compare audio
+  Promise.all([o.play(), c.play()]).catch(() => {});
+}
+
+document.addEventListener('click', (e) => {
+  const d = e.target.closest('[data-act=editdesc]');
+  if (!d) return;
+  editingDesc = d.closest('.card').dataset.id;
+  render();
+  const ta = document.querySelector('textarea[data-role=desc]');
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+});
+document.addEventListener('focusout', (e) => { if (e.target.dataset?.role === 'desc') saveDesc(e.target); });
+document.addEventListener('focusout', (e) => { if (e.target.dataset?.role === 'quote') saveQuote(e.target); });
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act=editquote], [data-act=copyquote]');
+  if (!b) return;
+  const v = videos.find((x) => x.id === b.closest('.card').dataset.id);
+  if (b.dataset.act === 'copyquote') {
+    const ok = await copyText(v.xQuote);
+    b.textContent = ok ? 'Copied ✓' : 'Copy failed';
+    setTimeout(() => { b.textContent = 'Copy'; }, 1500);
+    return;
+  }
+  editingQuote = v.id;
+  render();
+  const ta = document.querySelector('textarea[data-role=quote]');
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.dataset.role !== 'quote') return;
+  const n = [...e.target.value.trim()].length;
+  const c = e.target.closest('.xq').querySelector('.count');
+  c.textContent = `${n}/280`;
+  c.classList.toggle('over', n > 280);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.dataset?.role === 'quote') {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveQuote(e.target); }
+    if (e.key === 'Escape') { editingQuote = null; render(); }
+    e.stopImmediatePropagation();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.dataset?.role === 'desc') {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveDesc(e.target); }
+    if (e.key === 'Escape') { editingDesc = null; render(); }
+    return;
+  }
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if (!openId && ((e.key === '/' && !typing) || (e.key === 'k' && (e.metaKey || e.ctrlKey)))) {
+    e.preventDefault(); $('#q').focus(); $('#q').select();
+  } else if (e.key === 'Escape' && e.target.id === 'q') {
+    $('#q').value = ''; archiveOpen = false; render(); $('#q').blur();
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.act === 'openArchive') { archiveOpen = true; return render(); }
+  if (t.dataset.finddel) {
+    const c = finds[view].find((x) => x.id === t.dataset.finddel);
+    if (t.dataset.armed !== '1') { // two-click confirm; browser popups can be blocked
+      t.dataset.armed = '1'; t.textContent = 'Click again to remove';
+      setTimeout(() => { t.dataset.armed = ''; t.textContent = 'Delete'; }, 3000);
+      return;
+    }
+    const r = await api('/api/finds/delete', { s: view, id: c.id });
+    if (r.error) return alert(r.error);
+    finds[view] = finds[view].filter((x) => x.id !== c.id);
+    return render();
+  }
+  if (t.dataset.play) {
+    const c = finds[view]?.find((x) => x.id === t.dataset.play);
+    t.outerHTML = c && c.file
+      ? `<video class="${isWide(c) ? 'wide' : ''}" src="${findUrl(c, 'video')}" controls autoplay playsinline></video>`
+      : `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(t.dataset.play)}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+    return;
+  }
+  if (t.dataset.tab) return go({ tab: t.dataset.tab });
+  if (t.dataset.view) return go({ view: t.dataset.view });
+  const songEl = t.closest('.song');
+  if (songEl) {
+    const s = songs.find((x) => x.id === songEl.dataset.song);
+    if (t.dataset.unuse) return setUsedIn(s, s.usedIn.filter((v) => v !== t.dataset.unuse));
+    if (t.dataset.act === 'reveal') api('/api/reveal', { id: s.id }).then((r) => r.error && alert('Couldn\'t show it in Finder: ' + r.error));
+    return;
+  }
+  const cardEl = t.closest('.card');
+  if (!cardEl) return;
+  const v = videos.find((x) => x.id === cardEl.dataset.id);
+  if (t.dataset.act === 'addpost') { addingPost = addingPost === v.id ? null : v.id; return render(); }
+  if (t.dataset.act === 'cancelpost') { addingPost = null; return render(); }
+  if (t.dataset.act === 'rmpost') {
+    const key = `${v.id}|${t.dataset.i}`;
+    if (armedPost !== key) { // two-click confirm, like Delete
+      armedPost = key; render();
+      setTimeout(() => { if (armedPost === key) { armedPost = null; render(); } }, 3000);
+      return;
+    }
+    armedPost = null;
+    const p = v.posts[+t.dataset.i];
+    const r = await api('/api/post', { id: v.id, account: p.account, url: p.url || '', remove: true });
+    if (r.error) return alert(r.error);
+    v.posts = r.posts;
+    return render();
+  }
+  if (t.dataset.pick) return setOriginal(v, t.dataset.pick);
+  if (t.dataset.act === 'unlink') return setOriginal(v, null);
+  if (t.dataset.act === 'both') return playBoth(cardEl);
+  if (t.dataset.act === 'pick') {
+    picking = picking === v.id ? null : v.id;
+    render();
+    if (picking) {
+      // Fresh every time: clips downloaded since the page opened show up.
+      candidates = null; render();
+      candidates = await fetch('/api/candidates').then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+        .catch((err) => ({ error: String(err.message || err) }));
+      render();
+    }
+    document.querySelector(`.card[data-id="${CSS.escape(v.id)}"] [data-role=find]`)?.focus();
+    return;
+  }
+  if (t.dataset.act === 'archive') return saveFlag(v, 'archived', !v.archived);
+  if (t.dataset.act === 'approved') return saveFlag(v, 'approved', !v.approved, { approvedAt: !v.approved ? new Date().toISOString() : null });
+  if (t.dataset.act === 'posted') return saveFlag(v, 'posted', !v.posted);
+  if (t.dataset.status === 'delete' || t.dataset.act === 'trash') {
+    // Delete = move the file to the macOS Trash ("Put Back" restores it). Two clicks instead of a
+    // confirm() popup, because the in-app browser can block popups.
+    // The armed state lives outside the button: a reload (e.g. on window focus) re-renders the cards.
+    if (armedDelete !== v.id) {
+      armedDelete = v.id;
+      render();
+      clearTimeout(armedTimer);
+      armedTimer = setTimeout(() => { armedDelete = null; render(); }, 3000);
+      return;
+    }
+    clearTimeout(armedTimer);
+    armedDelete = null;
+    t.disabled = true;
+    t.textContent = 'Moving to Trash…';
+    const r = await api('/api/trash', { id: v.id });
+    if (r.error) { t.disabled = false; t.textContent = 'Couldn\'t delete: ' + r.error; return; }
+    const at = order.indexOf(v.id), nextId = order[at + 1] || order[at - 1] || null;
+    videos = videos.filter((x) => x.id !== v.id);
+    order = order.filter((id) => id !== v.id);
+    if (nextId && videos.some((x) => x.id === nextId)) openReview(nextId); else closeReview();
+    render();
+  } else if (t.dataset.status) {
+    // Clicking the active label again clears it.
+    return saveFlag(v, 'status', v.status === t.dataset.status ? 'ok' : t.dataset.status);
+  } else if (t.dataset.act === 'reveal') {
+    api('/api/reveal', { id: v.id }).then((r) => r.error && alert('Couldn\'t show it in Finder: ' + r.error));
+  }
+});
+
+// "Used in" chip: jump to that video.
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-goto]');
+  if (!a) return;
+  e.preventDefault();
+  const v = videos.find((x) => x.id === a.dataset.goto);
+  go({ view: 'videos', tab: 'all', folder: 'all' }, { render: false });
+  $('#q').value = v ? v.name : '';
+  openId = v ? v.id : null;
+  render();
+});
+
+document.addEventListener('change', (e) => {
+  const songEl = e.target.closest('.song');
+  if (songEl) {
+    const s = songs.find((x) => x.id === songEl.dataset.song);
+    if (e.target.dataset.role === 'use' && e.target.value) return setUsedIn(s, [...s.usedIn, e.target.value]);
+    if (e.target.matches('textarea')) {
+      const old = s.note, ta = e.target;
+      s.note = ta.value;
+      api('/api/label', { id: s.id, note: s.note }).then((r) => { if (r.error) { s.note = old; ta.value = old; alert('Note not saved: ' + r.error); } });
+    }
+    return;
+  }
+  if (e.target.id === 'folder' || e.target.id === 'showArchive' || e.target.id === 'where') render();
+});
+let searchTimer;
+$('#q').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  archiveOpen = false;
+  searchTimer = setTimeout(render, 120);
+});
+document.addEventListener('input', (e) => {
+  if (e.target.dataset.role === 'find') e.target.nextElementSibling.innerHTML = candidateOpts(e.target.value);
+});
+// Keep the original in step when you seek or pause the conversion during "Play both".
+document.addEventListener('seeked', (e) => {
+  if (e.target.dataset.role !== 'conv') return;
+  const o = e.target.closest('.card').querySelector('video[data-role=orig]');
+  if (o && !o.paused) o.currentTime = e.target.currentTime;
+}, true);
+document.addEventListener('pause', (e) => {
+  if (e.target.dataset.role !== 'conv') return;
+  e.target.closest('.card').querySelector('video[data-role=orig]')?.pause();
+}, true);
+// Enter / Space on the clickable description and "+ Add source link" act like a click.
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && t.matches && t.matches('[role=button][data-act]')) { e.preventDefault(); t.click(); }
+});
+// Pick up new files when you come back to the tab.
+window.addEventListener('focus', () => { if (!picking && !editingDesc && !editingQuote && !editingSrc && !addingPost) load(); });
+// ───────────── Pages ─────────────
+// Every sidebar item is its own page with its own address, so Back / Forward / reload keep your place:
+//   #/videos/<tab>[/<folder>]   e.g. #/videos/approved/other
+//   #/songs   #/finds/<section>
+function routeHash(v = view, t = tab, f = $('#folder').value) {
+  if (v === 'songs') return '#/songs';
+  if (v in FINDS) return '#/finds/' + v;
+  return '#/videos/' + t + (f && f !== 'all' ? '/' + f : '');
+}
+function applyRoute() {
+  const [, kind, a, b] = (location.hash.match(/^#\/([a-z]+)(?:\/([a-z0-9-]+))?(?:\/([a-z0-9-]+))?$/) || []);
+  const prevView = view;
+  if (kind === 'songs') view = 'songs';
+  else if (kind === 'finds' && Object.hasOwn(FINDS, a)) view = a;
+  else {
+    view = 'videos';
+    tab = TABS.some((x) => x[0] === a) ? a : 'all';
+    $('#folder').value = [...$('#folder').options].some((o) => o.value === b) ? b : 'all';
+  }
+  if (view !== prevView) $('#q').value = '';
+  pageTitle();
+}
+function pageTitle() {
+  const name = view === 'songs' ? 'Songs' : view in FINDS ? FINDS[view].label.replace(/^\S+ /, '') + ' finds'
+    : [TABS.find((x) => x[0] === tab)[1], $('#folder').value === 'all' ? '' : FOLDER_NAME[$('#folder').value]].filter(Boolean).join(' · ');
+  document.title = `${view === 'videos' ? 'Videos · ' : ''}${name} — Video Studio Library`;
+}
+// Go to another page (a new history entry). A video open in the review panel closes.
+// The address changes at once (pushState), so callers can set more state before rendering.
+function go(change, { render: doRender = true } = {}) {
+  const next = routeHash(change.view ?? (change.tab || change.folder ? 'videos' : view), change.tab ?? tab, change.folder ?? $('#folder').value);
+  if (openId) closeReview();
+  if (location.hash !== next) history.pushState(null, '', next);
+  applyRoute();
+  if (doRender) render();
+}
+// Back / Forward (and a typed address) land here.
+window.addEventListener('hashchange', () => { if (openId) closeReview(); applyRoute(); render(); });
+fetch('/api/config').then((r) => r.json()).catch(() => ({})).then((c) => {
+  setConfig(c);
+  if (!location.hash) history.replaceState(null, '', routeHash());
+  applyRoute();
+  load();
+});
+</script>
+</body>
+</html>
